@@ -1,0 +1,58 @@
+[build-system]
+requires      = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name        = "langfuse-custom-tracer"
+version     = "0.3.0"
+description = "Langfuse v4 tracing for Google Gemini and Anthropic Claude with automatic token counting and cost tracking"
+readme      = "README.md"
+license     = { text = "MIT" }
+requires-python = ">=3.10"
+
+authors = [
+    { name = "Sudarshan Rawate", email = "sudarshan.r@zuneko.in" },
+]
+
+keywords = [
+    "langfuse", "tracing", "observability", "llm",
+    "gemini", "claude", "anthropic", "cost-tracking",
+]
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+# langfuse v3+ required (v4.x recommended — rewritten on OpenTelemetry)
+dependencies = [
+    "langfuse>=3.0.0",
+]
+
+[project.optional-dependencies]
+env       = ["python-dotenv>=1.0.0"]
+gemini    = ["google-generativeai>=0.8.0"]
+anthropic = ["anthropic>=0.30.0"]
+all       = [
+    "python-dotenv>=1.0.0",
+    "google-generativeai>=0.8.0",
+    "anthropic>=0.30.0",
+]
+dev = ["pytest>=8.0", "pytest-cov>=4.0", "pytest-timeout>=2.1", "build", "twine"]
+
+[project.urls]
+Homepage   = "https://github.com/sudarshan-zuneko/langfuse-custom-tracer"
+Repository = "https://github.com/sudarshan-zuneko/langfuse-custom-tracer"
+Issues     = "https://github.com/sudarshan-zuneko/langfuse-custom-tracer/issues"
+
+[tool.setuptools.packages.find]
+where   = ["."]
+include = ["langfuse_custom_tracer*"]
