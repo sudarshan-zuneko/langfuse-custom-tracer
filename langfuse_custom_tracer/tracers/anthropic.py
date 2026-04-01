@@ -24,7 +24,7 @@ class AnthropicTracer(BaseTracer):
         ...             messages=[{"role": "user", "content": "Hello"}]
         ...         )
         ...         usage = tracer.extract_usage(response, model="claude-3-5-sonnet-20241022")
-        ...         gen.update(output=response.content[0].text, usage=usage)
+        ...         gen.update(output=response.content[0].text, usage_details=usage)
     """
     
     # Anthropic pricing table (Q1 2026)

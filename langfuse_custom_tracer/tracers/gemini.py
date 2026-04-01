@@ -48,14 +48,15 @@ class GeminiTracer(BaseTracer):
                                    input=prompt) as gen:
                 response = model.generate_content(prompt)
                 usage = tracer.extract_usage(response, model="gemini-2.0-flash")
-                gen.update(output=response.text, usage=usage)
+                gen.update(output=response.text, usage_details=usage)
             span.update(output="done")
 
         tracer.flush()
     """
 
     def extract_usage(self, response: Any, model: str = "gemini-2.0-flash") -> dict:
-        """Extract token usage from a Gemini response.
+        """
+        Extract token usage from a Gemini response.
 
         Gemini ``usage_metadata`` field mapping:
 
@@ -74,16 +75,32 @@ class GeminiTracer(BaseTracer):
             model:    Model name for pricing lookup (e.g. "gemini-2.0-flash").
 
         Returns:
-            Usage dict compatible with ``gen.update(usage=...)``.
+            Usage dict with at least keys input/output/total for Langfuse.
+            Cost fields are included for convenience but should be passed in metadata.
         """
         _um = getattr(response, "usage_metadata", None)
         if not _um:
+            # Return empty dict so Langfuse handles it as 'unknown' rather than zero
             return {}
 
-        prompt_tokens     = getattr(_um, "prompt_token_count",         0) or 0
-        completion_tokens = getattr(_um, "candidates_token_count",     0) or 0
-        total_tokens      = getattr(_um, "total_token_count",          0) or 0
-        cached_tokens     = getattr(_um, "cached_content_token_count", 0) or 0
+        def _get_val(obj: Any, key: str) -> int:
+            """Safe extraction from object or dict."""
+            if hasattr(obj, key):
+                return getattr(obj, key) or 0
+            if isinstance(obj, dict):
+                return obj.get(key) or 0
+            # Try to get from protobuf-like object if it has .get()
+            if hasattr(obj, "get"):
+                try:
+                    return obj.get(key) or 0
+                except:
+                    pass
+            return 0
+
+        prompt_tokens     = _get_val(_um, "prompt_token_count")
+        completion_tokens = _get_val(_um, "candidates_token_count")
+        total_tokens      = _get_val(_um, "total_token_count")
+        cached_tokens     = _get_val(_um, "cached_content_token_count")
 
         new_input_tokens = max(0, prompt_tokens - cached_tokens)
 
@@ -98,6 +115,7 @@ class GeminiTracer(BaseTracer):
             "output":     completion_tokens,
             "total":      total_tokens,
             "unit":       "TOKENS",
+            # Cost fields are included for convenience, but Langfuse expects only input/output/total in usage
             "inputCost":  input_cost,
             "outputCost": output_cost,
             "totalCost":  total_cost,

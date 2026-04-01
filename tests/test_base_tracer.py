@@ -170,3 +170,16 @@ class TestBaseTracer:
         
         # Both should have been called
         assert mock_langfuse_client.start_as_current_observation.call_count == 2
+
+    def test_generation_user_exception_propagation(self, mock_langfuse_client):
+        """Test that exceptions from user code inside generation() propagate correctly."""
+        tracer = BaseTracer(mock_langfuse_client)
+        
+        # This is where the fix is tested: a user exception should NOT causes a RuntimeError
+        # in the context manager, but should propagate normally to the caller.
+        with pytest.raises(ValueError, match="User error"):
+            with tracer.generation("test", model="gpt-4") as gen:
+                raise ValueError("User error")
+                
+        # The internal span should still have been opened
+        assert mock_langfuse_client.start_as_current_observation.call_count == 1

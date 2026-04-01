@@ -4,7 +4,7 @@ Base tracer for Langfuse v4 custom LLM tracing.
 Langfuse v4 (released March 2026) is built on OpenTelemetry.
 Key API changes from v2/v3:
   - Langfuse() constructor  →  get_client() singleton
-  - start_observation()     →  start_as_current_observation() context manager
+  - start_observation()     →  start_as_current_observation()
   - usage_details / cost    →  single usage={} dict with inputCost/outputCost
   - Parent-child nesting is handled automatically by OTEL context propagation
 """
@@ -25,16 +25,7 @@ class BaseTracer:
     """
 
     def __init__(self, langfuse_client: Any) -> None:
-        """
-        Args:
-            langfuse_client: A Langfuse v4 client from ``get_client()``
-                             or ``create_langfuse_client()``.
-        """
         self._lf = langfuse_client
-
-    # ------------------------------------------------------------------ #
-    #  Context-manager based API  (recommended — v4 native)               #
-    # ------------------------------------------------------------------ #
 
     @contextmanager
     def trace(
@@ -59,7 +50,7 @@ class BaseTracer:
                                        input=prompt) as gen:
                     response = gemini_model.generate_content(prompt)
                     usage = tracer.extract_usage(response, model="gemini-2.0-flash")
-                    gen.update(output=response.text, usage=usage)
+                    gen.update(output=response.text, usage_details=usage)
                 span.update(output="done")
         """
         if not self._lf:
@@ -74,11 +65,14 @@ class BaseTracer:
         if tags       is not None: kwargs["tags"]       = tags
 
         try:
-            with self._lf.start_as_current_observation(**kwargs) as span:
-                yield span
+            obs_cm = self._lf.start_as_current_observation(**kwargs)
         except Exception as e:
-            print(f"[LangfuseTracer] trace failed: {e}")
+            print(f"[LangfuseTracer] trace failed to start: {e}")
             yield None
+            return
+
+        with obs_cm as span:
+            yield span
 
     @contextmanager
     def generation(
@@ -100,7 +94,7 @@ class BaseTracer:
                                    input=prompt) as gen:
                 response = model.generate_content(prompt)
                 usage = tracer.extract_usage(response, model="gemini-2.0-flash")
-                gen.update(output=response.text, usage=usage)
+                gen.update(output=response.text, usage_details=usage)
         """
         if not self._lf:
             yield None
@@ -115,15 +109,14 @@ class BaseTracer:
         if metadata is not None: kwargs["metadata"] = metadata
 
         try:
-            with self._lf.start_as_current_observation(**kwargs) as gen:
-                yield gen
+            obs_cm = self._lf.start_as_current_observation(**kwargs)
         except Exception as e:
-            print(f"[LangfuseTracer] generation failed: {e}")
+            print(f"[LangfuseTracer] generation failed to start: {e}")
             yield None
+            return
 
-    # ------------------------------------------------------------------ #
-    #  Flush                                                               #
-    # ------------------------------------------------------------------ #
+        with obs_cm as gen:
+            yield gen
 
     def flush(self) -> None:
         """Flush pending Langfuse events. Call this in short-lived scripts."""
@@ -133,28 +126,9 @@ class BaseTracer:
             except Exception:
                 pass
 
-    # ------------------------------------------------------------------ #
-    #  To be overridden by subclasses                                     #
-    # ------------------------------------------------------------------ #
-
     def extract_usage(self, response: Any, **kwargs: Any) -> dict:
         """Parse token counts + compute cost from an LLM response.
 
         Subclasses MUST implement this.
-
-        The returned dict is passed directly to ``gen.update(usage=...)``.
-        Required keys for Langfuse v4 cost tracking:
-
-        .. code-block:: python
-
-            {
-                "input":       <int>,    # prompt tokens
-                "output":      <int>,    # completion tokens
-                "total":       <int>,    # total tokens
-                "unit":        "TOKENS",
-                "inputCost":   <float>,  # USD
-                "outputCost":  <float>,  # USD
-                "totalCost":   <float>,  # USD
-            }
         """
         raise NotImplementedError("Subclasses must implement extract_usage()")
