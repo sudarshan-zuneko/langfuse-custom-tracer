@@ -40,6 +40,26 @@ class TestAnthropicTracerInitialization:
 class TestAnthropicPricingLookup:
     """Test Claude model pricing lookup."""
     
+    def test_get_pricing_claude_4_6_opus(self, tracer):
+        """Test pricing for Claude 4.6 Opus."""
+        pricing = tracer._get_pricing("claude-4-6-opus")
+        assert pricing["input"] == 5.00
+        assert pricing["output"] == 25.00
+        assert pricing["cache_read"] == 0.50
+        assert pricing["cache_write"] == 6.25
+
+    def test_get_pricing_claude_4_6_sonnet(self, tracer):
+        """Test pricing for Claude 4.6 Sonnet."""
+        pricing = tracer._get_pricing("claude-4-6-sonnet")
+        assert pricing["input"] == 3.00
+        assert pricing["output"] == 15.00
+
+    def test_get_pricing_claude_4_5_haiku(self, tracer):
+        """Test pricing for Claude 4.5 Haiku."""
+        pricing = tracer._get_pricing("claude-4-5-haiku")
+        assert pricing["input"] == 1.00
+        assert pricing["output"] == 5.00
+
     def test_get_pricing_claude_3_5_sonnet(self, tracer):
         """Test pricing for Claude 3.5 Sonnet."""
         pricing = tracer._get_pricing("claude-3-5-sonnet-20241022")

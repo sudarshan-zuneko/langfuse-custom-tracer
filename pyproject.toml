@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name        = "langfuse-custom-tracer"
-version     = "0.3.0"
+version     = "0.3.2"
 description = "Langfuse v4 tracing for Google Gemini and Anthropic Claude with automatic token counting and cost tracking"
 readme      = "README.md"
 license     = { text = "MIT" }

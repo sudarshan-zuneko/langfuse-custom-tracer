@@ -30,6 +30,26 @@ class AnthropicTracer(BaseTracer):
     # Anthropic pricing table (Q1 2026)
     # Format: {"model": {"input": price_per_1m, "output": price_per_1m, "cache_read": price_per_1m, "cache_write": price_per_1m}}
     ANTHROPIC_PRICING = {
+        # Claude 4.6 / 4.5 Models (Current as of April 2026)
+        "claude-4-6-opus": {
+            "input": 5.00,
+            "output": 25.00,
+            "cache_read": 0.50,
+            "cache_write": 6.25,
+        },
+        "claude-4-6-sonnet": {
+            "input": 3.00,
+            "output": 15.00,
+            "cache_read": 0.30,
+            "cache_write": 3.75,
+        },
+        "claude-4-5-haiku": {
+            "input": 1.00,
+            "output": 5.00,
+            "cache_read": 0.10,
+            "cache_write": 1.25,
+        },
+
         # Claude 3.5 Models
         "claude-3-5-sonnet-20241022": {
             "input": 3.00,

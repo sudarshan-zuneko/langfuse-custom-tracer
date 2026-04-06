@@ -11,6 +11,8 @@ from .base import BaseTracer
 
 GEMINI_PRICING: dict[str, dict[str, float]] = {
     "gemini-2.5-pro":       {"input": 1.25,  "output": 10.00, "cached": 0.3125},
+    "gemini-2.5-flash":     {"input": 0.30,  "output": 2.50,  "cached": 0.075},
+    "gemini-2.5-flash-lite":{"input": 0.10,  "output": 0.40,  "cached": 0.025},
     "gemini-2.0-flash":     {"input": 0.15,  "output": 0.60,  "cached": 0.0375},
     "gemini-2.0-flash-lite":{"input": 0.075, "output": 0.30,  "cached": 0.01875},
     "gemini-1.5-pro":       {"input": 1.25,  "output": 5.00,  "cached": 0.3125},
@@ -54,7 +56,7 @@ class GeminiTracer(BaseTracer):
         tracer.flush()
     """
 
-    def extract_usage(self, response: Any, model: str = "gemini-2.0-flash") -> dict:
+    def extract_usage(self, response: Any, model: str) -> dict:
         """
         Extract token usage from a Gemini response.
 

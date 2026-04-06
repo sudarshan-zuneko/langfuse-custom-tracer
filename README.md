@@ -91,7 +91,7 @@ with tracer.trace("invoice-processing", input={"file": "invoice.pdf"}) as span:
                           input="Extract name, amount, date") as gen:
         response = model.generate_content("Extract name, amount, date from invoice")
         usage = tracer.extract_usage(response, model="gemini-2.0-flash")
-        gen.update(output=response.text, usage=usage)
+        gen.update(output=response.text, usage_details=usage)
     span.update(output="Extraction complete")
 
 tracer.flush()  # Send to Langfuse
@@ -126,7 +126,7 @@ with tracer.trace("invoice-processing", input={"file": "invoice.pdf"}) as span:
             messages=[{"role": "user", "content": "Extract name, amount, date from invoice"}]
         )
         usage = tracer.extract_usage(response, model="claude-3-5-sonnet-20241022")
-        gen.update(output=response.content[0].text, usage=usage)
+        gen.update(output=response.content[0].text, usage_details=usage)
     span.update(output="Extraction complete")
 
 tracer.flush()  # Send to Langfuse
@@ -246,7 +246,7 @@ with tracer.generation(
 ) as gen:
     response = model.generate_content("Extract data")
     usage = tracer.extract_usage(response, model="gemini-2.0-flash")
-    gen.update(output=response.text, usage=usage)
+    gen.update(output=response.text, usage_details=usage)
 ```
 
 **Parameters:**
@@ -406,7 +406,7 @@ with tracer.trace("email-analysis") as span:
             "From the email below, extract sender, subject, body:\n..."
         )
         usage = tracer.extract_usage(response, model="gemini-2.0-flash")
-        gen.update(output=response.text, usage=usage)
+        gen.update(output=response.text, usage_details=usage)
 
 tracer.flush()
 ```
@@ -437,7 +437,7 @@ with tracer.trace("email-analysis") as span:
             }]
         )
         usage = tracer.extract_usage(response, model="claude-3-5-sonnet-20241022")
-        gen.update(output=response.content[0].text, usage=usage)
+        gen.update(output=response.content[0].text, usage_details=usage)
 
 tracer.flush()
 ```
@@ -483,7 +483,7 @@ with tracer.trace("risky-operation"):
         try:
             response = model.generate_content("...")
             usage = tracer.extract_usage(response)
-            gen.update(output=response.text, usage=usage)
+            gen.update(output=response.text, usage_details=usage)
         except Exception as e:
             gen.update(status_code=500, error=str(e))
             raise

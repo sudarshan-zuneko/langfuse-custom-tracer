@@ -117,6 +117,18 @@ class TestGeminiTracer:
         assert usage_pro["inputCost"] > usage_lite["inputCost"]
         assert usage_pro["outputCost"] > usage_lite["outputCost"]
 
+    def test_extract_usage_gemini_2_5_flash(self, mock_langfuse_client, gemini_response_with_usage):
+        """Test extract_usage with Gemini 2.5 Flash."""
+        tracer = GeminiTracer(mock_langfuse_client)
+        usage = tracer.extract_usage(gemini_response_with_usage,
+                                     model="gemini-2.5-flash")
+        
+        # Input: 90 @ $0.30/1M = $0.000027
+        # Output: 50 @ $2.50/1M = $0.000125
+        # Cached: 10 @ $0.075/1M = $0.00000075
+        expected_total = (90 * 0.30 + 50 * 2.50 + 10 * 0.075) / 1_000_000
+        assert abs(usage["totalCost"] - expected_total) < 1e-9
+
     def test_extract_usage_no_cached_tokens(self, mock_langfuse_client):
         """Test extract_usage when there are no cached tokens."""
         response = Mock()
@@ -189,13 +201,12 @@ class TestGeminiTracer:
         assert usage["inputCost"] > 0.1
         assert usage["outputCost"] > 0.25
 
-    def test_extract_usage_default_model(self, mock_langfuse_client, gemini_response_with_usage):
-        """Test extract_usage uses default model."""
+    def test_extract_usage_requires_model(self, mock_langfuse_client, gemini_response_with_usage):
+        """Test that extract_usage requires the model parameter."""
         tracer = GeminiTracer(mock_langfuse_client)
-        usage = tracer.extract_usage(gemini_response_with_usage)  # No model specified
-        
-        assert "inputCost" in usage
-        assert usage["input"] == 90
+        with pytest.raises(TypeError):
+            tracer.extract_usage(gemini_response_with_usage)  # Should raise TypeError now
+
 
     def test_extract_usage_returns_dict(self, mock_langfuse_client, gemini_response_with_usage):
         """Test extract_usage returns proper dict structure."""
