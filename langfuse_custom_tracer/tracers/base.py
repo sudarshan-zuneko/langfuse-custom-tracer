@@ -59,10 +59,15 @@ class BaseTracer:
 
         kwargs: dict[str, Any] = {"as_type": "span", "name": name}
         if input      is not None: kwargs["input"]      = input
-        if metadata   is not None: kwargs["metadata"]   = metadata
         if user_id    is not None: kwargs["user_id"]    = user_id
         if session_id is not None: kwargs["session_id"] = session_id
-        if tags       is not None: kwargs["tags"]       = tags
+
+        # Merge tags into metadata (start_as_current_observation doesn't accept tags directly)
+        _meta = dict(metadata) if metadata else {}
+        if tags is not None:
+            _meta["tags"] = tags
+        if _meta:
+            kwargs["metadata"] = _meta
 
         try:
             obs_cm = self._lf.start_as_current_observation(**kwargs)

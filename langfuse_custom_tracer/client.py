@@ -13,7 +13,7 @@ from typing import Any
 def create_langfuse_client(
     secret_key: str,
     public_key: str,
-    host: str = "https://cloud.langfuse.com",
+    base_url: str = "https://cloud.langfuse.com",
 ) -> Any:
     """Configure Langfuse credentials and return the v4 singleton client.
 
@@ -24,7 +24,7 @@ def create_langfuse_client(
     Args:
         secret_key: Your Langfuse secret key  (starts with ``sk-lf-...``).
         public_key: Your Langfuse public key  (starts with ``pk-lf-...``).
-        host:       Langfuse server URL.  Defaults to EU cloud.
+        base_url:   Langfuse server URL.  Defaults to EU cloud.
                     US cloud: ``https://us.cloud.langfuse.com``
 
     Returns:
@@ -50,12 +50,12 @@ def create_langfuse_client(
 
     os.environ.setdefault("LANGFUSE_SECRET_KEY", secret_key)
     os.environ.setdefault("LANGFUSE_PUBLIC_KEY", public_key)
-    os.environ.setdefault("LANGFUSE_BASE_URL",   host)
+    os.environ.setdefault("LANGFUSE_BASE_URL",   base_url)
 
     # Override even if already set — caller is explicit
     os.environ["LANGFUSE_SECRET_KEY"] = secret_key
     os.environ["LANGFUSE_PUBLIC_KEY"] = public_key
-    os.environ["LANGFUSE_BASE_URL"]   = host
+    os.environ["LANGFUSE_BASE_URL"]   = base_url
 
     return get_client()
 

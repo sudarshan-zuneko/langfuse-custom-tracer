@@ -74,7 +74,7 @@ class TestBaseTracer:
             pass
         
         call_kwargs = mock_langfuse_client.start_as_current_observation.call_args[1]
-        assert call_kwargs["tags"] == tags
+        assert call_kwargs["metadata"]["tags"] == tags
 
     def test_trace_with_none_client(self):
         """Test trace() with None client yields None."""

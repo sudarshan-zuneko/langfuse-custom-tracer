@@ -6,13 +6,17 @@ from langfuse_custom_tracer import load_env, create_langfuse_client
 from langfuse_custom_tracer.tracers.gemini import GeminiTracer
 
 # 1. Load keys from your .env file
-load_env("../.env")
+# Try to load from current dir or parent dir
+if os.path.exists(".env"):
+    load_env(".env")
+elif os.path.exists("../.env"):
+    load_env("../.env")
 
 # 2. Initialize the client
 lf = create_langfuse_client(
     secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
     public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
-    host=os.getenv("LANGFUSE_BASE_URL")
+    base_url=os.getenv("LANGFUSE_BASE_URL")
 )
 
 # 3. Create the tracer

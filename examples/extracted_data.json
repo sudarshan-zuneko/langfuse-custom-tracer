@@ -1,0 +1,118 @@
+{
+  "bank_name": "ADITYA BIRLA CAPITAL FINANCE",
+  "branch": null,
+  "account_holder": "BHANDARI AUTOMOBILES PRIVATE LIMITED",
+  "account_number": "0304306",
+  "statement_period": {
+    "from": "2025-08-01",
+    "to": "2025-08-31"
+  },
+  "opening_balance": 6525881.3,
+  "closing_balance": 6881266.33,
+  "currency": "INR",
+  "transactions": [
+    {
+      "date": "2025-08-02",
+      "description": "Charges Repayment - Normal:55385.03 TDS:0.00 Recover from Refundable:0.00 the Utr No is HDFCR52025080297250200 And the Kotak Amount is 600000 Dated:02/08/2025",
+      "reference": "CFRL/290748, HDFCR52025080297250200",
+      "type": "DEBIT",
+      "amount": 55385.03,
+      "balance": 6470496.27
+    },
+    {
+      "date": "2025-08-02",
+      "description": "Charges Knocked off",
+      "reference": "CFRL/290748",
+      "type": "DEBIT",
+      "amount": 55385.03,
+      "balance": 6470496.27
+    },
+    {
+      "date": "2025-08-02",
+      "description": "Charges and Interest-Adjusted - Auto DN:RF Acc",
+      "reference": "CFDN/111903",
+      "type": "CREDIT",
+      "amount": 26921.51,
+      "balance": 6497417.78
+    },
+    {
+      "date": "2025-08-02",
+      "description": "Charges and Interest-Adjusted - Auto DN:RF Acc",
+      "reference": "CFDN/111904",
+      "type": "CREDIT",
+      "amount": 28463.52,
+      "balance": 6525881.3
+    },
+    {
+      "date": "2025-08-02",
+      "description": "Repayment - Repayment Allocated as Normal:544614.97 TDS:0.00 Recover from Refundable:0.00 the Utr No is HDFCR52025080297250200 And the Kotak Amount is600000 Dated:02/08/2025",
+      "reference": "CFRL/290749, HDFCR52025080297250200",
+      "type": "DEBIT",
+      "amount": 544614.97,
+      "balance": 5981266.33
+    },
+    {
+      "date": "2025-08-02",
+      "description": "Invoices Knocked Off",
+      "reference": "CFRL/290749, 20062025",
+      "type": "CREDIT",
+      "amount": 544614.97,
+      "balance": 5981266.33
+    },
+    {
+      "date": "2025-08-14",
+      "description": "Repayment - Repayment Allocated as Normal:6100000.00 TDS:0.00 Recover from Refundable:0.00 the Utr No is HDFCR52025081451081578 And the Kotak Amount is6100000 Dated: 14/08/2025",
+      "reference": "CFRL/293794, HDFCR52025081451081578",
+      "type": "DEBIT",
+      "amount": 6100000.0,
+      "balance": -118733.67
+    },
+    {
+      "date": "2025-08-14",
+      "description": "Invoices Knocked Off",
+      "reference": "CFRL/293794, 20062025",
+      "type": "CREDIT",
+      "amount": 5981266.33,
+      "balance": -118733.67
+    },
+    {
+      "date": "2025-08-25",
+      "description": "REGULAR PAYMENT - Cheque/UTR No : 1205249653",
+      "reference": "1205249653",
+      "type": "CREDIT",
+      "amount": 7000000.0,
+      "balance": 6881266.33
+    },
+    {
+      "date": "2025-08-26",
+      "description": "Invoices Knocked Off - Repayment of Existing Batch Number:CFRL/293794",
+      "reference": "CFRL/293794, 250825",
+      "type": "CREDIT",
+      "amount": 118733.67,
+      "balance": 6881266.33
+    },
+    {
+      "date": "2025-08-31",
+      "description": "Interest",
+      "reference": null,
+      "type": "CREDIT",
+      "amount": 32050.58,
+      "balance": 6913316.91
+    },
+    {
+      "date": "2025-08-31",
+      "description": "Transfer to Interest Receivable A/C and Di - Auto CN:Chg Dbt",
+      "reference": null,
+      "type": "DEBIT",
+      "amount": 32050.58,
+      "balance": 6881266.33
+    }
+  ],
+  "summary": {
+    "total_credits": 13732050.58,
+    "total_debits": 6737435.61,
+    "total_transactions": 12,
+    "credit_count": 8,
+    "debit_count": 4
+  }
+}

@@ -101,10 +101,12 @@ class GeminiTracer(BaseTracer):
 
         prompt_tokens     = _get_val(_um, "prompt_token_count")
         completion_tokens = _get_val(_um, "candidates_token_count")
-        total_tokens      = _get_val(_um, "total_token_count")
         cached_tokens     = _get_val(_um, "cached_content_token_count")
 
         new_input_tokens = max(0, prompt_tokens - cached_tokens)
+
+        # Calculate total manually to avoid Gemini API bugs with multimodal requests
+        total_tokens = prompt_tokens + completion_tokens
 
         pricing = _get_pricing(model)
         input_cost  = (new_input_tokens  * pricing["input"])  / 1_000_000
