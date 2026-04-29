@@ -36,25 +36,6 @@ class TracedLLMClient:
             return res, text
         raise ValueError(f"Unknown provider: {self._provider}")
 
-    def generate(self, prompt, *, trace_name=None, session_id=None, user_id=None, tags=None, metadata=None, **kwargs):
-        _user_id = user_id or get_user()
-        _session_id = session_id or get_session()
-
-<<<<<<< HEAD
-        with self._tracer.trace(trace_name or f"{self._provider}-call", session_id=_session_id, user_id=_user_id, tags=tags, metadata=metadata) as span:
-            if span: _set_trace_id(span.id)
-            with self._tracer.generation(f"{self._provider}-gen", model=self._model, input=str(prompt)) as gen:
-                start = time.perf_counter()
-                try:
-                    raw, text = self._dispatch(prompt, **kwargs)
-                    ms = (time.perf_counter() - start) * 1000
-                    usage = self._tracer.extract_usage(raw, self._model)
-                    pricing_source = usage.pop("_pricing_source", "unknown")
-                    pricing_version = usage.pop("_pricing_version", "unknown")
-                    if gen:
-                        gen.update(output=text[:MAX_LOG_OUTPUT], usage_details=usage, metadata={"latency_ms": round(ms, 2), "pricing_source": pricing_source, "pricing_version": pricing_version})
-                    return LLMResponse(text=text, usage=usage, model=self._model, provider=self._provider, latency_ms=round(ms, 2), raw_response=raw)
-=======
     @staticmethod
     def _truncate(text: str, limit: int = MAX_LOG_OUTPUT) -> str:
         """Truncate text for Langfuse logging (never log full responses)."""
@@ -182,8 +163,6 @@ class TracedLLMClient:
                         latency_ms=round(elapsed_ms, 2),
                         raw_response=raw_response,
                     )
-
->>>>>>> 2f99cf588aa2ae714f120625cd9b8f6a59f265b5
                 except Exception as e:
                     if gen: gen.update(output="error", metadata={"error": str(e)})
                     raise

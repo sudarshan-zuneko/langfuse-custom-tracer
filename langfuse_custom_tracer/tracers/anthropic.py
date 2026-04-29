@@ -1,13 +1,11 @@
 from typing import Any, Dict
 from langfuse_custom_tracer.pricing_manager import pricing_manager
-from .base import BaseTracer
+from langfuse_custom_tracer.tracers.base import BaseTracer
+
 
 class AnthropicTracer(BaseTracer):
-    """Tracer for Anthropic Claude models."""
+    """Tracer for Anthropic Claude models.
     
-<<<<<<< HEAD
-    def extract_usage(self, response: Any, model: str) -> Dict[str, Any]:
-=======
     Supports all Claude models with real-time pricing integration.
     Includes support for prompt caching (cache read/write tokens).
     
@@ -28,20 +26,12 @@ class AnthropicTracer(BaseTracer):
         ...         gen.update(output=response.content[0].text, usage_details=usage)
     """
     
-from langfuse_custom_tracer.pricing_manager import pricing_manager
-from langfuse_custom_tracer.tracers.base import BaseTracer
-
-
-class AnthropicTracer(BaseTracer):
-    """Tracer for Anthropic Claude models."""
-    
     def extract_usage(
         self,
         response: Any,
         model: str,
     ) -> Dict[str, Any]:
         """Extract token usage and compute cost using PricingManager."""
->>>>>>> 2f99cf588aa2ae714f120625cd9b8f6a59f265b5
         if isinstance(response, dict):
             usage_data = response.get("usage", response)
         else:
@@ -54,18 +44,6 @@ class AnthropicTracer(BaseTracer):
         cache_read_tokens = usage_data.get("cache_read_input_tokens", 0) or 0
         cache_write_tokens = usage_data.get("cache_creation_input_tokens", 0) or 0
         
-<<<<<<< HEAD
-        total_tokens = input_tokens + output_tokens + cache_read_tokens + cache_write_tokens
-        
-        pricing, version, source = pricing_manager.get_price(model)
-        
-        input_cost = (input_tokens * pricing.get("input", 0)) / 1_000_000
-        output_cost = (output_tokens * pricing.get("output", 0)) / 1_000_000
-        cache_read_cost = (cache_read_tokens * pricing.get("cache_read", 0)) / 1_000_000
-        cache_write_cost = (cache_write_tokens * pricing.get("cache_write", 0)) / 1_000_000
-        
-        return {
-=======
         total_input = input_tokens + cache_read_tokens + cache_write_tokens
         total_tokens = total_input + output_tokens
         
@@ -90,19 +68,10 @@ class AnthropicTracer(BaseTracer):
         total_cost = input_cost + output_cost + cached_read_cost + cached_write_cost
         
         usage = {
->>>>>>> 2f99cf588aa2ae714f120625cd9b8f6a59f265b5
             "input": input_tokens,
             "output": output_tokens,
             "total": total_tokens,
             "unit": "TOKENS",
-<<<<<<< HEAD
-            "inputCost": input_cost,
-            "outputCost": output_cost,
-            "totalCost": input_cost + output_cost + cache_read_cost + cache_write_cost,
-            "_pricing_source": source,
-            "_pricing_version": version,
-        }
-=======
             "inputCost": round(input_cost, 8),
             "outputCost": round(output_cost, 8),
             "totalCost": round(total_cost, 8),
@@ -119,4 +88,3 @@ class AnthropicTracer(BaseTracer):
             usage["cacheWriteCost"] = round(cached_write_cost, 8)
         
         return usage
->>>>>>> 2f99cf588aa2ae714f120625cd9b8f6a59f265b5

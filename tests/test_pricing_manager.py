@@ -1,18 +1,9 @@
 import pytest
 from unittest.mock import patch, MagicMock
-<<<<<<< HEAD
-import time
-from langfuse_custom_tracer.pricing_manager import PricingManager, pricing_manager
-
-@pytest.fixture
-def manager():
-    # Create a fresh instance for each test to avoid singleton state issues
-=======
 from langfuse_custom_tracer.pricing_manager import PricingManager
 
 @pytest.fixture
 def manager():
->>>>>>> 2f99cf588aa2ae714f120625cd9b8f6a59f265b5
     return PricingManager(url="http://mock.url", ttl=60)
 
 def test_pricing_manager_fetch_success(manager):
@@ -46,10 +37,6 @@ def test_pricing_manager_fallback_to_langfuse(manager):
 def test_pricing_manager_partial_match(manager):
     manager._cache = {"gemini-1.5": {"input": 0.5, "output": 1.0}}
     manager._version = "v1"
-<<<<<<< HEAD
-    manager._last_fetch = time.time()
-=======
->>>>>>> 2f99cf588aa2ae714f120625cd9b8f6a59f265b5
     
     price, version, source = manager.get_price("gemini-1.5-flash")
     assert price["input"] == 0.5
@@ -66,24 +53,3 @@ def test_pricing_manager_ttl(manager):
     with patch.object(manager, "_fetch_remote") as mock_fetch:
         manager.get_price("any")
         mock_fetch.assert_called_once()
-<<<<<<< HEAD
-
-def test_tracer_integration_gemini():
-    from langfuse_custom_tracer.tracers.gemini import GeminiTracer
-    tracer = GeminiTracer(None)
-    
-    # Mock pricing manager singleton
-    with patch("langfuse_custom_tracer.tracers.gemini.pricing_manager") as mock_pm:
-        mock_pm.get_price.return_value = ({"input": 1.0, "output": 2.0}, "v1", "json")
-        
-        mock_res = MagicMock()
-        mock_res.usage_metadata.prompt_token_count = 100
-        mock_res.usage_metadata.candidates_token_count = 50
-        mock_res.usage_metadata.cached_content_token_count = 0
-        
-        usage = tracer.extract_usage(mock_res, "test-model")
-        assert usage["inputCost"] == (100 * 1.0) / 1_000_000
-        assert usage["_pricing_source"] == "json"
-        assert usage["_pricing_version"] == "v1"
-=======
->>>>>>> 2f99cf588aa2ae714f120625cd9b8f6a59f265b5
