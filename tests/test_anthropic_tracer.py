@@ -1,8 +1,34 @@
 """Unit tests for AnthropicTracer."""
 
+import time
 import pytest
 from unittest.mock import MagicMock
 from langfuse_custom_tracer.tracers.anthropic import AnthropicTracer
+from langfuse_custom_tracer.pricing_manager import get_pricing_manager, reset_pricing_manager
+
+
+SAMPLE_ANTHROPIC_PRICING = {
+    "claude-4-6-opus":              {"input": 5.00,  "output": 25.00, "cache_read": 0.50,  "cache_write": 6.25},
+    "claude-4-6-sonnet":            {"input": 3.00,  "output": 15.00, "cache_read": 0.30,  "cache_write": 3.75},
+    "claude-4-5-haiku":             {"input": 1.00,  "output": 5.00,  "cache_read": 0.10,  "cache_write": 1.25},
+    "claude-3-5-sonnet-20241022":   {"input": 3.00,  "output": 15.00, "cache_read": 0.30,  "cache_write": 3.75},
+    "claude-3-5-haiku-20241022":    {"input": 0.80,  "output": 4.00,  "cache_read": 0.08,  "cache_write": 1.00},
+    "claude-3-opus-20250219":       {"input": 15.00, "output": 75.00, "cache_read": 1.50,  "cache_write": 18.75},
+    "claude-3-sonnet-20240229":     {"input": 3.00,  "output": 15.00, "cache_read": 0.30,  "cache_write": 3.75},
+    "claude-3-haiku-20240307":      {"input": 0.80,  "output": 4.00,  "cache_read": 0.08,  "cache_write": 1.00},
+}
+
+
+@pytest.fixture(autouse=True)
+def seed_anthropic_pricing():
+    """Seed PricingManager with Anthropic pricing."""
+    reset_pricing_manager()
+    pm = get_pricing_manager()
+    pm._cache = dict(SAMPLE_ANTHROPIC_PRICING)
+    pm._version = "test-anthropic"
+    pm._last_fetch = time.monotonic()
+    yield
+    reset_pricing_manager()
 
 
 @pytest.fixture
@@ -30,11 +56,10 @@ class TestAnthropicTracerInitialization:
         assert hasattr(tracer, 'trace')
         assert hasattr(tracer, 'generation')
     
-    def test_pricing_table_exists(self, tracer):
-        """Test that pricing table is available."""
-        assert hasattr(tracer, 'ANTHROPIC_PRICING')
-        assert isinstance(tracer.ANTHROPIC_PRICING, dict)
-        assert len(tracer.ANTHROPIC_PRICING) >= 5
+    def test_pricing_manager_has_models(self, tracer):
+        """Test that pricing is available via PricingManager."""
+        pm = get_pricing_manager()
+        assert pm.model_count >= 5
 
 
 class TestAnthropicPricingLookup:
@@ -42,27 +67,28 @@ class TestAnthropicPricingLookup:
     
     def test_get_pricing_claude_4_6_opus(self, tracer):
         """Test pricing for Claude 4.6 Opus."""
-        pricing = tracer._get_pricing("claude-4-6-opus")
+        pricing, _, source = tracer._get_pricing("claude-4-6-opus")
         assert pricing["input"] == 5.00
         assert pricing["output"] == 25.00
         assert pricing["cache_read"] == 0.50
         assert pricing["cache_write"] == 6.25
+        assert source == "json"
 
     def test_get_pricing_claude_4_6_sonnet(self, tracer):
         """Test pricing for Claude 4.6 Sonnet."""
-        pricing = tracer._get_pricing("claude-4-6-sonnet")
+        pricing, _, _ = tracer._get_pricing("claude-4-6-sonnet")
         assert pricing["input"] == 3.00
         assert pricing["output"] == 15.00
 
     def test_get_pricing_claude_4_5_haiku(self, tracer):
         """Test pricing for Claude 4.5 Haiku."""
-        pricing = tracer._get_pricing("claude-4-5-haiku")
+        pricing, _, _ = tracer._get_pricing("claude-4-5-haiku")
         assert pricing["input"] == 1.00
         assert pricing["output"] == 5.00
 
     def test_get_pricing_claude_3_5_sonnet(self, tracer):
         """Test pricing for Claude 3.5 Sonnet."""
-        pricing = tracer._get_pricing("claude-3-5-sonnet-20241022")
+        pricing, _, _ = tracer._get_pricing("claude-3-5-sonnet-20241022")
         assert pricing["input"] == 3.00
         assert pricing["output"] == 15.00
         assert pricing["cache_read"] == 0.30
@@ -70,7 +96,7 @@ class TestAnthropicPricingLookup:
     
     def test_get_pricing_claude_3_5_haiku(self, tracer):
         """Test pricing for Claude 3.5 Haiku."""
-        pricing = tracer._get_pricing("claude-3-5-haiku-20241022")
+        pricing, _, _ = tracer._get_pricing("claude-3-5-haiku-20241022")
         assert pricing["input"] == 0.80
         assert pricing["output"] == 4.00
         assert pricing["cache_read"] == 0.08
@@ -78,40 +104,41 @@ class TestAnthropicPricingLookup:
     
     def test_get_pricing_claude_3_opus(self, tracer):
         """Test pricing for Claude 3 Opus."""
-        pricing = tracer._get_pricing("claude-3-opus-20250219")
+        pricing, _, _ = tracer._get_pricing("claude-3-opus-20250219")
         assert pricing["input"] == 15.00
         assert pricing["output"] == 75.00
     
     def test_get_pricing_claude_3_sonnet(self, tracer):
         """Test pricing for Claude 3 Sonnet."""
-        pricing = tracer._get_pricing("claude-3-sonnet-20240229")
+        pricing, _, _ = tracer._get_pricing("claude-3-sonnet-20240229")
         assert pricing["input"] == 3.00
         assert pricing["output"] == 15.00
     
     def test_get_pricing_claude_3_haiku(self, tracer):
         """Test pricing for Claude 3 Haiku."""
-        pricing = tracer._get_pricing("claude-3-haiku-20240307")
+        pricing, _, _ = tracer._get_pricing("claude-3-haiku-20240307")
         assert pricing["input"] == 0.80
         assert pricing["output"] == 4.00
     
     def test_get_pricing_partial_match(self, tracer):
         """Test pricing lookup with partial model name."""
-        pricing = tracer._get_pricing("claude-3-5-sonnet")
+        pricing, _, source = tracer._get_pricing("claude-3-5-sonnet")
         # Should match "claude-3-5-sonnet-20241022"
         assert pricing["input"] == 3.00
+        assert source == "json"
     
     def test_get_pricing_case_insensitive(self, tracer):
         """Test pricing lookup is case insensitive."""
-        pricing_lower = tracer._get_pricing("claude-3-5-sonnet-20241022")
-        pricing_upper = tracer._get_pricing("CLAUDE-3-5-SONNET-20241022")
+        pricing_lower, _, _ = tracer._get_pricing("claude-3-5-sonnet-20241022")
+        pricing_upper, _, _ = tracer._get_pricing("CLAUDE-3-5-SONNET-20241022")
         assert pricing_lower == pricing_upper
     
     def test_get_pricing_unknown_model_defaults(self, tracer):
-        """Test pricing lookup for unknown model defaults to Sonnet."""
-        pricing = tracer._get_pricing("unknown-claude-model")
-        # Should default to Claude 3.5 Sonnet
-        assert pricing["input"] == 3.00
-        assert pricing["output"] == 15.00
+        """Test pricing lookup for unknown model returns zero (safe default)."""
+        pricing, _, source = tracer._get_pricing("unknown-claude-model")
+        assert source == "default"
+        assert pricing["input"] == 0.0
+        assert pricing["output"] == 0.0
 
 
 class TestAnthropicExtractUsageBasic:
@@ -518,7 +545,7 @@ class TestAnthropicTracerForwardCompatibility:
     """Test forward compatibility with future Claude models."""
     
     def test_unknown_claude_model_uses_default(self, tracer):
-        """Test unknown Claude models default gracefully."""
+        """Test unknown Claude models fallback to zero pricing."""
         response = {
             "usage": {
                 "input_tokens": 100,
@@ -527,9 +554,10 @@ class TestAnthropicTracerForwardCompatibility:
         }
         usage = tracer.extract_usage(response, model="claude-4-future")
         
-        # Should use default (Claude 3.5 Sonnet) pricing
-        assert usage["inputCost"] > 0
-        assert usage["outputCost"] > 0
+        # Unknown model -> default zero cost
+        assert usage["inputCost"] == 0.0
+        assert usage["outputCost"] == 0.0
+        assert usage["pricing_source"] == "default"
     
     def test_claude_variant_partial_match(self, tracer):
         """Test partial matching for Claude model variants."""

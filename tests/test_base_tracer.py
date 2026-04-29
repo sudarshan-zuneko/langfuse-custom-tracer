@@ -53,7 +53,7 @@ class TestBaseTracer:
             pass
         
         call_kwargs = mock_langfuse_client.start_as_current_observation.call_args[1]
-        assert call_kwargs["user_id"] == "user123"
+        assert call_kwargs["metadata"]["user_id"] == "user123"
 
     def test_trace_with_session_id(self, mock_langfuse_client):
         """Test trace() with session_id."""
@@ -63,7 +63,7 @@ class TestBaseTracer:
             pass
         
         call_kwargs = mock_langfuse_client.start_as_current_observation.call_args[1]
-        assert call_kwargs["session_id"] == "session456"
+        assert call_kwargs["metadata"]["session_id"] == "session456"
 
     def test_trace_with_tags(self, mock_langfuse_client):
         """Test trace() with tags."""

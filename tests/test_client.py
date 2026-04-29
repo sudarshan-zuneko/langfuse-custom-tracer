@@ -28,15 +28,15 @@ class TestCreateLangfuseClient:
         assert os.environ["LANGFUSE_BASE_URL"] == "https://cloud.langfuse.com"
 
     @patch("langfuse.get_client")
-    def test_custom_base_url(self, mock_get_client):
-        """Test client creation with custom base_url."""
+    def test_custom_host(self, mock_get_client):
+        """Test client creation with custom host."""
         mock_client = Mock()
         mock_get_client.return_value = mock_client
         
         lf = create_langfuse_client(
             secret_key="sk-lf-test",
             public_key="pk-lf-test",
-            base_url="https://us.cloud.langfuse.com"
+            host="https://us.cloud.langfuse.com"
         )
         
         assert os.environ["LANGFUSE_BASE_URL"] == "https://us.cloud.langfuse.com"

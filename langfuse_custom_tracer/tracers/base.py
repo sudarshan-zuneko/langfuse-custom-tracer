@@ -59,13 +59,17 @@ class BaseTracer:
 
         kwargs: dict[str, Any] = {"as_type": "span", "name": name}
         if input      is not None: kwargs["input"]      = input
-        if user_id    is not None: kwargs["user_id"]    = user_id
-        if session_id is not None: kwargs["session_id"] = session_id
 
-        # Merge tags into metadata (start_as_current_observation doesn't accept tags directly)
+        # Merge tags, session_id, and user_id into metadata
+        # (start_as_current_observation doesn't accept them directly in v4 SDK)
         _meta = dict(metadata) if metadata else {}
         if tags is not None:
             _meta["tags"] = tags
+        if session_id is not None:
+            _meta["session_id"] = session_id
+        if user_id is not None:
+            _meta["user_id"] = user_id
+            
         if _meta:
             kwargs["metadata"] = _meta
 
