@@ -241,14 +241,23 @@ class TracedLLMClient:
         _gen_name = f"{self._provider}-generation"
         input_summary = self._summarize_input(prompt)
 
+        # Fallback to context-based tracking if not explicitly provided
+        from langfuse_custom_tracer.context import get_user, get_session, _set_trace_id
+        
+        _user_id = user_id or get_user()
+        _session_id = session_id or get_session()
+
         with self._tracer.trace(
             _trace_name,
             input={"prompt": input_summary, "model": self._model},
-            session_id=session_id,
-            user_id=user_id,
+            session_id=_session_id,
+            user_id=_user_id,
             tags=tags,
             metadata=metadata,
         ) as span:
+            if span:
+                _set_trace_id(span.id)
+                
             with self._tracer.generation(
                 _gen_name,
                 model=self._model,
@@ -263,6 +272,10 @@ class TracedLLMClient:
                     usage = self._tracer.extract_usage(
                         raw_response, model=self._model
                     )
+                    
+                    # Extract pricing metadata
+                    pricing_source = usage.pop("_pricing_source", "unknown")
+                    pricing_version = usage.pop("_pricing_version", "unknown")
 
                     if gen:
                         gen.update(
@@ -271,6 +284,8 @@ class TracedLLMClient:
                             metadata={
                                 "provider": self._provider,
                                 "latency_ms": round(elapsed_ms, 2),
+                                "pricing_source": pricing_source,
+                                "pricing_version": pricing_version,
                             },
                         )
 

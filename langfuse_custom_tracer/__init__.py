@@ -9,7 +9,11 @@ from langfuse_custom_tracer.tracers.anthropic import AnthropicTracer
 from langfuse_custom_tracer.clients.traced_llm import TracedLLMClient, LLMResponse
 from langfuse_custom_tracer.factory import create_traced_client
 
-__version__ = "1.0.2"
+from langfuse_custom_tracer.auto import observe, unpatch
+from langfuse_custom_tracer.context import set_user, set_session, end_session, get_trace_id
+from langfuse_custom_tracer.scoring import score
+
+__version__ = "1.1.0"
 __author__  = "Sudarshan Rawate"
 __email__   = "sudarshan.r@zuneko.in"
 
@@ -17,12 +21,20 @@ __all__ = [
     # Client setup
     "create_langfuse_client",
     "load_env",
-    # Manual tracers (Tier 1)
+    # Manual tracers
     "BaseTracer",
     "GeminiTracer",
     "AnthropicTracer",
-    # Automatic tracing (Tier 2 — new in v1.0.0)
+    # Traced Client
     "TracedLLMClient",
     "LLMResponse",
     "create_traced_client",
+    # Automatic Tracing (v3)
+    "observe",
+    "unpatch",
+    "set_user",
+    "set_session",
+    "end_session",
+    "get_trace_id",
+    "score",
 ]

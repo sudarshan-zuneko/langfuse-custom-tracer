@@ -35,6 +35,8 @@ classifiers = [
 # langfuse v3+ required (v4.x recommended — rewritten on OpenTelemetry)
 dependencies = [
     "langfuse>=3.0.0",
+    "requests>=2.31.0",
+    "wrapt>=1.16.0",
 ]
 
 [project.optional-dependencies]
