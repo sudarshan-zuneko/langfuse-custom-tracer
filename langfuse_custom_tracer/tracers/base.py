@@ -11,6 +11,8 @@ Key API changes from v2/v3:
 
 from contextlib import contextmanager
 from typing import Any, Generator
+from langfuse_custom_tracer.pricing_manager import pricing_manager
+from langfuse_custom_tracer.context import get_user, get_session
 
 
 class BaseTracer:
@@ -57,18 +59,19 @@ class BaseTracer:
             yield None
             return
 
-        kwargs: dict[str, Any] = {"as_type": "span", "name": name}
-        if input      is not None: kwargs["input"]      = input
+        # If user_id/session_id not provided, try to get from context
+        _user_id = user_id or get_user()
+        _session_id = session_id or get_session()
 
-        # Merge tags, session_id, and user_id into metadata
-        # (start_as_current_observation doesn't accept them directly in v4 SDK)
+        kwargs: dict[str, Any] = {"as_type": "span", "name": name}
+        if input       is not None: kwargs["input"]       = input
+        if _user_id    is not None: kwargs["user_id"]     = _user_id
+        if _session_id is not None: kwargs["session_id"]  = _session_id
+
+        # Merge tags into metadata
         _meta = dict(metadata) if metadata else {}
         if tags is not None:
             _meta["tags"] = tags
-        if session_id is not None:
-            _meta["session_id"] = session_id
-        if user_id is not None:
-            _meta["user_id"] = user_id
             
         if _meta:
             kwargs["metadata"] = _meta
@@ -91,6 +94,8 @@ class BaseTracer:
         model: str,
         input: Any = None,
         metadata: dict | None = None,
+        user_id: str | None = None,
+        session_id: str | None = None,
     ) -> Generator[Any, None, None]:
         """Context manager that opens a generation span.
 
@@ -109,13 +114,19 @@ class BaseTracer:
             yield None
             return
 
+        # If user_id/session_id not provided, try to get from context
+        _user_id = user_id or get_user()
+        _session_id = session_id or get_session()
+
         kwargs: dict[str, Any] = {
             "as_type": "generation",
             "name":    name,
             "model":   model,
         }
-        if input    is not None: kwargs["input"]    = input
-        if metadata is not None: kwargs["metadata"] = metadata
+        if input       is not None: kwargs["input"]       = input
+        if _user_id    is not None: kwargs["user_id"]     = _user_id
+        if _session_id is not None: kwargs["session_id"]  = _session_id
+        if metadata    is not None: kwargs["metadata"]    = metadata
 
         try:
             obs_cm = self._lf.start_as_current_observation(**kwargs)
@@ -141,3 +152,11 @@ class BaseTracer:
         Subclasses MUST implement this.
         """
         raise NotImplementedError("Subclasses must implement extract_usage()")
+
+    def _get_pricing(self, model: str) -> tuple[dict[str, float], str, str]:
+        """Get pricing for a model using the pricing manager.
+        
+        Returns:
+            (price_dict, version, source)
+        """
+        return pricing_manager.get_price(model)

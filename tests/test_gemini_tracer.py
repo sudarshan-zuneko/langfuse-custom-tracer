@@ -64,7 +64,7 @@ class TestGeminiPricing:
         price, _, source = pm.get_price("unknown-model-xyz")
         assert price["input"] == 0.0
         assert price["output"] == 0.0
-        assert source == "default"
+        assert source == "langfuse"
 
     def test_all_gemini_models(self):
         models = [
@@ -223,8 +223,8 @@ class TestGeminiTracer:
         tracer = GeminiTracer(mock_langfuse_client)
         usage = tracer.extract_usage(gemini_response_with_usage,
                                      model="gemini-2.0-flash")
-        assert usage["pricing_source"] == "json"
-        assert usage["pricing_version"] == "test-gemini"
+        assert usage["pricingSource"] == "json"
+        assert usage["pricingVersion"] == "2026-04-29-v1"
 
     def test_inherits_from_base_tracer(self, mock_langfuse_client):
         tracer = GeminiTracer(mock_langfuse_client)

@@ -11,17 +11,31 @@ from langfuse_custom_tracer import observe, set_user, set_session, score, get_tr
 
 @pytest.fixture
 def mock_langfuse():
-    with patch("langfuse_custom_tracer.auto.get_client") as mock_get:
-        client = MagicMock()
-        mock_get.return_value = client
-        yield client
+    with patch("langfuse_custom_tracer.auto._client", new_callable=MagicMock) as mock_client:
+        yield mock_client
 
-def test_auto_patch_observes(mock_langfuse):
+@pytest.fixture(autouse=True)
+def reset_context_vars():
+    from langfuse_custom_tracer.context import _trace_id, _user_id, _session_id
+    _trace_id.set(None)
+    _user_id.set(None)
+    _session_id.set(None)
+    yield
+
+def test_auto_patch_observes():
+    # Temporarily set environment variables for the test
+    os.environ["LANGFUSE_SECRET_KEY"] = "dummy_secret"
+    os.environ["LANGFUSE_PUBLIC_KEY"] = "dummy_public"
+    
     observe()
-    # verify patching logic called (hard to check exact wrapt state but can check if client was initialized)
+    
     from langfuse_custom_tracer.auto import _get_langfuse
     client = _get_langfuse()
     assert client is not None
+    
+    # Clean up environment variables
+    del os.environ["LANGFUSE_SECRET_KEY"]
+    del os.environ["LANGFUSE_PUBLIC_KEY"]
 
 def test_context_propagation():
     set_user("user123")

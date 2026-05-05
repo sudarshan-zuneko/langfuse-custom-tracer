@@ -59,8 +59,8 @@ class GeminiTracer(BaseTracer):
             "outputCost": output_cost,
             "totalCost":  total_cost,
             # Metadata for client-side extraction
-            "_pricing_source": source,
-            "_pricing_version": version,
+            "pricingSource": source,
+            "pricingVersion": version,
         }
 
         if cached_tokens:

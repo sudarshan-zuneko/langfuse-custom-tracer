@@ -17,6 +17,11 @@ class LLMResponse:
     raw_response: Any = None
 
     def __str__(self) -> str: return self.text
+    
+    def __repr__(self) -> str:
+        return (f"LLMResponse(text={self.text!r}, usage={self.usage}, "
+                f"model={self.model!r}, provider={self.provider!r}, "
+                f"latency_ms={round(self.latency_ms)}ms, raw_response={self.raw_response!r})")
 
 class TracedLLMClient:
     def __init__(self, provider_client, tracer, model, provider, *, default_max_tokens=8192):
@@ -26,12 +31,21 @@ class TracedLLMClient:
         self._provider = provider.lower()
         self._default_max_tokens = default_max_tokens
 
+    @property
+    def model(self):
+        return self._model
+
+    @property
+    def provider(self):
+        return self._provider
+
     def _dispatch(self, prompt, **kwargs):
         if self._provider == "gemini":
             res = self._client.generate_content(prompt, **kwargs)
             return res, getattr(res, "text", "")
         elif self._provider == "anthropic":
-            res = self._client.messages.create(model=self._model, messages=[{"role": "user", "content": prompt}], max_tokens=self._default_max_tokens, **kwargs)
+            _max_tokens = kwargs.pop("max_tokens", self._default_max_tokens)
+            res = self._client.messages.create(model=self._model, messages=[{"role": "user", "content": prompt}], max_tokens=_max_tokens, **kwargs)
             text = "".join(b.text for b in res.content if hasattr(b, "text"))
             return res, text
         raise ValueError(f"Unknown provider: {self._provider}")

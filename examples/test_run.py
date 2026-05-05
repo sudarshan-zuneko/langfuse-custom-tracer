@@ -13,7 +13,7 @@ elif os.path.exists("../.env"):
 lf = create_langfuse_client(
     secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
     public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
-    base_url=os.getenv("LANGFUSE_BASE_URL")
+    host=os.getenv("LANGFUSE_BASE_URL", "https://cloud.langfuse.com")
 )
 
 # 3. Create the tracer
@@ -29,7 +29,7 @@ if not gemini_key:
     sys.exit(1)
 
 genai.configure(api_key=gemini_key)
-model_name = "gemini-2.0-flash"
+model_name = "gemini-1.5-flash"
 model = genai.GenerativeModel(model_name)
 
 prompt = "Explain quantum computing in one simple sentence. in detail"

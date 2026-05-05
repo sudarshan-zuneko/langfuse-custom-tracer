@@ -75,8 +75,8 @@ class AnthropicTracer(BaseTracer):
             "inputCost": round(input_cost, 8),
             "outputCost": round(output_cost, 8),
             "totalCost": round(total_cost, 8),
-            "_pricing_source": source,
-            "_pricing_version": version,
+            "pricingSource": source, 
+            "pricingVersion": version, 
         }
         
         if cache_read_tokens:

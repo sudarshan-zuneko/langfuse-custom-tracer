@@ -1,4 +1,5 @@
 import pytest
+import time
 from unittest.mock import patch, MagicMock
 from langfuse_custom_tracer.pricing_manager import PricingManager
 
@@ -37,8 +38,10 @@ def test_pricing_manager_fallback_to_langfuse(manager):
 def test_pricing_manager_partial_match(manager):
     manager._cache = {"gemini-1.5": {"input": 0.5, "output": 1.0}}
     manager._version = "v1"
+    manager._last_fetch = time.time()  # Mark as recently fetched to prevent refresh
     
-    price, version, source = manager.get_price("gemini-1.5-flash")
+    # Test partial match with a model that doesn't exist exactly
+    price, version, source = manager.get_price("gemini-1.5-ultra")
     assert price["input"] == 0.5
     assert source == "json"
 

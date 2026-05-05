@@ -45,36 +45,44 @@ def _build_wrapper(provider: str, tracer_cls: type):
             elif "model" in kwargs:
                 model = kwargs["model"]
 
-        with client.start_as_current_observation(
-            as_type="span",
-            name=f"{provider}-auto-trace",
-            metadata={
-                "user_id": user_id,
-                "session_id": session_id,
-                "auto_traced": True
-            }
-        ) as trace:
+        trace_kwargs = {
+            "as_type": "span",
+            "name": f"{provider}-auto-trace",
+            "metadata": {"auto_traced": True}
+        }
+        if user_id is not None:
+            trace_kwargs["user_id"] = user_id
+        if session_id is not None:
+            trace_kwargs["session_id"] = session_id
+
+        with client.start_as_current_observation(**trace_kwargs) as trace:
             _set_trace_id(trace.id)
             tracer = tracer_cls(client)
             
-            with client.start_as_current_observation(
-                as_type="generation",
-                name=f"{provider}-generation",
-                model=model,
-                metadata={"auto_traced": True}
-            ) as gen:
+            gen_kwargs = {
+                "as_type": "generation",
+                "name": f"{provider}-generation",
+                "model": model,
+                "metadata": {"auto_traced": True}
+            }
+            if user_id is not None:
+                gen_kwargs["user_id"] = user_id
+            if session_id is not None:
+                gen_kwargs["session_id"] = session_id
+
+            with client.start_as_current_observation(**gen_kwargs) as gen:
                 start_time = time.perf_counter()
                 try:
                     result = wrapped(*args, **kwargs)
                     latency = (time.perf_counter() - start_time) * 1000
                     usage = tracer.extract_usage(result, model=model)
                     
-                    pricing_source = usage.pop("_pricing_source", "unknown")
-                    pricing_version = usage.pop("_pricing_version", "unknown")
+                    pricing_source = usage.get("pricingSource", "unknown")
+                    pricing_version = usage.get("pricingVersion", "unknown")
                     
                     gen.update(
                         output=str(getattr(result, "text", result)),
-                        usage_details=usage,
+                        usage=usage,
                         metadata={
                             "latency_ms": round(latency, 2),
                             "pricing_source": pricing_source,

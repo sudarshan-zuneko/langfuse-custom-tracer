@@ -19,7 +19,7 @@ elif os.path.exists("../.env"):
 lf = create_langfuse_client(
     secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
     public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
-    base_url=os.getenv("LANGFUSE_BASE_URL"),
+    host=os.getenv("LANGFUSE_BASE_URL", "https://cloud.langfuse.com"),
 )
 
 # 3. Create a traced client — ONE LINE

@@ -63,7 +63,8 @@ class PricingManager:
         # Sort keys by length descending to match most specific model first
         sorted_keys = sorted(self._cache.keys(), key=len, reverse=True)
         for key in sorted_keys:
-            if model_lower.startswith(key.lower()):
+            key_lower = key.lower()
+            if model_lower.startswith(key_lower):
                 return self._cache[key], self._version, "json"
                 
         # 3. Fallback to Langfuse (send 0 cost, let server handle it)
