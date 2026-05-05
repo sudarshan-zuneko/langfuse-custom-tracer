@@ -44,16 +44,6 @@ class BaseTracer:
 
         All ``generation()`` calls made inside this block are automatically
         nested as children via OpenTelemetry context propagation.
-
-        Example::
-
-            with tracer.trace("my-pipeline", input={"file": "doc.pdf"}) as span:
-                with tracer.generation("gemini-call", model="gemini-2.0-flash",
-                                       input=prompt) as gen:
-                    response = gemini_model.generate_content(prompt)
-                    usage = tracer.extract_usage(response, model="gemini-2.0-flash")
-                    gen.update(output=response.text, usage_details=usage)
-                span.update(output="done")
         """
         if not self._lf:
             yield None
@@ -64,17 +54,8 @@ class BaseTracer:
         _session_id = session_id or get_session()
 
         kwargs: dict[str, Any] = {"as_type": "span", "name": name}
-        if input       is not None: kwargs["input"]       = input
-        if _user_id    is not None: kwargs["user_id"]     = _user_id
-        if _session_id is not None: kwargs["session_id"]  = _session_id
-
-        # Merge tags into metadata
-        _meta = dict(metadata) if metadata else {}
-        if tags is not None:
-            _meta["tags"] = tags
-            
-        if _meta:
-            kwargs["metadata"] = _meta
+        if input is not None: kwargs["input"] = input
+        if metadata is not None: kwargs["metadata"] = metadata
 
         try:
             obs_cm = self._lf.start_as_current_observation(**kwargs)
@@ -83,8 +64,23 @@ class BaseTracer:
             yield None
             return
 
-        with obs_cm as span:
-            yield span
+        try:
+            from langfuse import propagate_attributes
+            prop_kwargs = {}
+            if _user_id is not None: prop_kwargs["user_id"] = _user_id
+            if _session_id is not None: prop_kwargs["session_id"] = _session_id
+            if tags is not None: prop_kwargs["tags"] = tags
+            
+            if prop_kwargs:
+                with obs_cm as span, propagate_attributes(**prop_kwargs):
+                    yield span
+            else:
+                with obs_cm as span:
+                    yield span
+        except ImportError:
+            # Fallback if langfuse < 3.0 or propagate_attributes not available
+            with obs_cm as span:
+                yield span
 
     @contextmanager
     def generation(
@@ -123,10 +119,8 @@ class BaseTracer:
             "name":    name,
             "model":   model,
         }
-        if input       is not None: kwargs["input"]       = input
-        if _user_id    is not None: kwargs["user_id"]     = _user_id
-        if _session_id is not None: kwargs["session_id"]  = _session_id
-        if metadata    is not None: kwargs["metadata"]    = metadata
+        if input    is not None: kwargs["input"]    = input
+        if metadata is not None: kwargs["metadata"] = metadata
 
         try:
             obs_cm = self._lf.start_as_current_observation(**kwargs)
@@ -135,8 +129,21 @@ class BaseTracer:
             yield None
             return
 
-        with obs_cm as gen:
-            yield gen
+        try:
+            from langfuse import propagate_attributes
+            prop_kwargs = {}
+            if _user_id is not None: prop_kwargs["user_id"] = _user_id
+            if _session_id is not None: prop_kwargs["session_id"] = _session_id
+            
+            if prop_kwargs:
+                with obs_cm as gen, propagate_attributes(**prop_kwargs):
+                    yield gen
+            else:
+                with obs_cm as gen:
+                    yield gen
+        except ImportError:
+            with obs_cm as gen:
+                yield gen
 
     def flush(self) -> None:
         """Flush pending Langfuse events. Call this in short-lived scripts."""

@@ -49,32 +49,38 @@ class TestBaseTracer:
         """Test trace() with user_id."""
         tracer = BaseTracer(mock_langfuse_client)
         
-        with tracer.trace("test", user_id="user123") as span:
-            pass
-        
-        call_kwargs = mock_langfuse_client.start_as_current_observation.call_args[1]
-        assert call_kwargs["user_id"] == "user123"
+        with patch("langfuse.propagate_attributes") as mock_propagate:
+            mock_propagate.return_value.__enter__ = Mock()
+            mock_propagate.return_value.__exit__ = Mock()
+            with tracer.trace("test", user_id="user123") as span:
+                pass
+            
+            mock_propagate.assert_called_once_with(user_id="user123")
 
     def test_trace_with_session_id(self, mock_langfuse_client):
         """Test trace() with session_id."""
         tracer = BaseTracer(mock_langfuse_client)
         
-        with tracer.trace("test", session_id="session456") as span:
-            pass
-        
-        call_kwargs = mock_langfuse_client.start_as_current_observation.call_args[1]
-        assert call_kwargs["session_id"] == "session456"
+        with patch("langfuse.propagate_attributes") as mock_propagate:
+            mock_propagate.return_value.__enter__ = Mock()
+            mock_propagate.return_value.__exit__ = Mock()
+            with tracer.trace("test", session_id="session456") as span:
+                pass
+            
+            mock_propagate.assert_called_once_with(session_id="session456")
 
     def test_trace_with_tags(self, mock_langfuse_client):
         """Test trace() with tags."""
         tracer = BaseTracer(mock_langfuse_client)
         
         tags = ["production", "important"]
-        with tracer.trace("test", tags=tags) as span:
-            pass
-        
-        call_kwargs = mock_langfuse_client.start_as_current_observation.call_args[1]
-        assert call_kwargs["metadata"]["tags"] == tags
+        with patch("langfuse.propagate_attributes") as mock_propagate:
+            mock_propagate.return_value.__enter__ = Mock()
+            mock_propagate.return_value.__exit__ = Mock()
+            with tracer.trace("test", tags=tags) as span:
+                pass
+            
+            mock_propagate.assert_called_once_with(tags=tags)
 
     def test_trace_with_none_client(self):
         """Test trace() with None client yields None."""

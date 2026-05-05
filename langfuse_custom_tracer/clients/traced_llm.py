@@ -151,20 +151,46 @@ class TracedLLMClient:
                     )
                     
                     # Extract pricing metadata
-                    pricing_source = usage.pop("_pricing_source", "unknown")
-                    pricing_version = usage.pop("_pricing_version", "unknown")
+                    pricing_source = usage.pop("pricingSource", "unknown")
+                    pricing_version = usage.pop("pricingVersion", "unknown")
+
+                    usage_details = {
+                        "input": usage.get("input", 0),
+                        "output": usage.get("output", 0),
+                        "total": usage.get("total", 0)
+                    }
+                    cost_details = {
+                        "input": usage.get("inputCost", 0.0),
+                        "output": usage.get("outputCost", 0.0),
+                        "total": usage.get("totalCost", 0.0),
+                        "inputCost": usage.get("inputCost", 0.0),
+                        "outputCost": usage.get("outputCost", 0.0),
+                        "totalCost": usage.get("totalCost", 0.0)
+                    }
 
                     if gen:
                         gen.update(
                             output=self._truncate(text),
-                            usage_details=usage,
+                            usage_details=usage_details,
+                            cost_details=cost_details,
                             metadata={
                                 "provider": self._provider,
                                 "latency_ms": round(elapsed_ms, 2),
                                 "pricing_source": pricing_source,
-                                "pricing_version": pricing_version,
+                                "pricing_version": pricing_version
                             },
                         )
+                        
+                        # Force standard OTEL cost attribute so Langfuse backend definitely picks it up
+                        try:
+                            import opentelemetry.trace as otel_trace
+                            current_span = otel_trace.get_current_span()
+                            if current_span and current_span.is_recording():
+                                current_span.set_attribute("gen_ai.usage.input_cost", usage.get("inputCost", 0.0))
+                                current_span.set_attribute("gen_ai.usage.output_cost", usage.get("outputCost", 0.0))
+                                current_span.set_attribute("gen_ai.usage.cost", usage.get("totalCost", 0.0))
+                        except ImportError:
+                            pass
 
                     if span:
                         span.update(output="completed")

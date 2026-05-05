@@ -50,51 +50,149 @@ def _build_wrapper(provider: str, tracer_cls: type):
             "name": f"{provider}-auto-trace",
             "metadata": {"auto_traced": True}
         }
-        if user_id is not None:
-            trace_kwargs["user_id"] = user_id
-        if session_id is not None:
-            trace_kwargs["session_id"] = session_id
 
-        with client.start_as_current_observation(**trace_kwargs) as trace:
-            _set_trace_id(trace.id)
-            tracer = tracer_cls(client)
+        try:
+            from langfuse import propagate_attributes
+            prop_kwargs = {}
+            if user_id is not None: prop_kwargs["user_id"] = user_id
+            if session_id is not None: prop_kwargs["session_id"] = session_id
             
-            gen_kwargs = {
-                "as_type": "generation",
-                "name": f"{provider}-generation",
-                "model": model,
-                "metadata": {"auto_traced": True}
-            }
-            if user_id is not None:
-                gen_kwargs["user_id"] = user_id
-            if session_id is not None:
-                gen_kwargs["session_id"] = session_id
-
-            with client.start_as_current_observation(**gen_kwargs) as gen:
-                start_time = time.perf_counter()
+            with client.start_as_current_observation(**trace_kwargs) as trace:
+                if prop_kwargs:
+                    # We enter the context to propagate attributes to the generation span
+                    prop_cm = propagate_attributes(**prop_kwargs)
+                    prop_cm.__enter__()
                 try:
-                    result = wrapped(*args, **kwargs)
-                    latency = (time.perf_counter() - start_time) * 1000
-                    usage = tracer.extract_usage(result, model=model)
+                    _set_trace_id(trace.id)
+                    tracer = tracer_cls(client)
                     
-                    pricing_source = usage.get("pricingSource", "unknown")
-                    pricing_version = usage.get("pricingVersion", "unknown")
-                    
-                    gen.update(
-                        output=str(getattr(result, "text", result)),
-                        usage=usage,
-                        metadata={
-                            "latency_ms": round(latency, 2),
-                            "pricing_source": pricing_source,
-                            "pricing_version": pricing_version
+                    gen_kwargs = {
+                        "as_type": "generation",
+                        "name": f"{provider}-generation",
+                        "model": model,
+                        "metadata": {"auto_traced": True}
+                    }
+
+                    with client.start_as_current_observation(**gen_kwargs) as gen:
+                        start_time = time.perf_counter()
+                        try:
+                            result = wrapped(*args, **kwargs)
+                            latency = (time.perf_counter() - start_time) * 1000
+                            usage = tracer.extract_usage(result, model=model)
+                            
+                            pricing_source = usage.pop("pricingSource", "unknown")
+                            pricing_version = usage.pop("pricingVersion", "unknown")
+                            
+                            usage_details = {
+                                "input": usage.get("input", 0),
+                                "output": usage.get("output", 0),
+                                "total": usage.get("total", 0)
+                            }
+                            
+                            cost_details = {
+                                "input": usage.get("inputCost", 0.0),
+                                "output": usage.get("outputCost", 0.0),
+                                "total": usage.get("totalCost", 0.0),
+                                "inputCost": usage.get("inputCost", 0.0),
+                                "outputCost": usage.get("outputCost", 0.0),
+                                "totalCost": usage.get("totalCost", 0.0)
+                            }
+                            
+                            gen.update(
+                                output=str(getattr(result, "text", result)),
+                                usage_details=usage_details,
+                                cost_details=cost_details,
+                                metadata={
+                                    "latency_ms": round(latency, 2),
+                                    "pricing_source": pricing_source,
+                                    "pricing_version": pricing_version
+                                }
+                            )
+                            
+                            # Force standard OTEL cost attribute so Langfuse backend definitely picks it up
+                            try:
+                                import opentelemetry.trace as otel_trace
+                                current_span = otel_trace.get_current_span()
+                                if current_span and current_span.is_recording():
+                                    current_span.set_attribute("gen_ai.usage.input_cost", usage.get("inputCost", 0.0))
+                                    current_span.set_attribute("gen_ai.usage.output_cost", usage.get("outputCost", 0.0))
+                                    current_span.set_attribute("gen_ai.usage.cost", usage.get("totalCost", 0.0))
+                            except ImportError:
+                                pass
+                            trace.update(output="SUCCESS")
+                            return result
+                        except Exception as e:
+                            gen.update(status_message=str(e), metadata={"error": True})
+                            trace.update(output=f"ERROR: {str(e)}")
+                            raise
+                finally:
+                    if prop_kwargs:
+                        prop_cm.__exit__(None, None, None)
+        except ImportError:
+            # Fallback if propagate_attributes is not available
+            with client.start_as_current_observation(**trace_kwargs) as trace:
+                _set_trace_id(trace.id)
+                tracer = tracer_cls(client)
+                
+                gen_kwargs = {
+                    "as_type": "generation",
+                    "name": f"{provider}-generation",
+                    "model": model,
+                    "metadata": {"auto_traced": True}
+                }
+
+                with client.start_as_current_observation(**gen_kwargs) as gen:
+                    start_time = time.perf_counter()
+                    try:
+                        result = wrapped(*args, **kwargs)
+                        latency = (time.perf_counter() - start_time) * 1000
+                        usage = tracer.extract_usage(result, model=model)
+                        
+                        pricing_source = usage.pop("pricingSource", "unknown")
+                        pricing_version = usage.pop("pricingVersion", "unknown")
+                        
+                        usage_details = {
+                            "input": usage.get("input", 0),
+                            "output": usage.get("output", 0),
+                            "total": usage.get("total", 0)
                         }
-                    )
-                    trace.update(output="SUCCESS")
-                    return result
-                except Exception as e:
-                    gen.update(status_message=str(e), metadata={"error": True})
-                    trace.update(output=f"ERROR: {str(e)}")
-                    raise
+                        
+                        cost_details = {
+                            "input": usage.get("inputCost", 0.0),
+                            "output": usage.get("outputCost", 0.0),
+                            "total": usage.get("totalCost", 0.0),
+                            "inputCost": usage.get("inputCost", 0.0),
+                            "outputCost": usage.get("outputCost", 0.0),
+                            "totalCost": usage.get("totalCost", 0.0)
+                        }
+                        
+                        gen.update(
+                            output=str(getattr(result, "text", result)),
+                            usage_details=usage_details,
+                            cost_details=cost_details,
+                            metadata={
+                                "latency_ms": round(latency, 2),
+                                "pricing_source": pricing_source,
+                                "pricing_version": pricing_version
+                            }
+                        )
+                        
+                        # Force standard OTEL cost attribute so Langfuse backend definitely picks it up
+                        try:
+                            import opentelemetry.trace as otel_trace
+                            current_span = otel_trace.get_current_span()
+                            if current_span and current_span.is_recording():
+                                current_span.set_attribute("gen_ai.usage.input_cost", usage.get("inputCost", 0.0))
+                                current_span.set_attribute("gen_ai.usage.output_cost", usage.get("outputCost", 0.0))
+                                current_span.set_attribute("gen_ai.usage.cost", usage.get("totalCost", 0.0))
+                        except ImportError:
+                            pass
+                        trace.update(output="SUCCESS")
+                        return result
+                    except Exception as e:
+                        gen.update(status_message=str(e), metadata={"error": True})
+                        trace.update(output=f"ERROR: {str(e)}")
+                        raise
     return wrapper
 
 def observe():
