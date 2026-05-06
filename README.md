@@ -23,6 +23,10 @@ A lightweight Python library that adds **observability and cost tracking** to yo
 - **TTL-based caching** for optimal performance
 - **Graceful degradation** - never crashes on network failures
 
+## Documentation
+
+View the full documentation at: [https://sudarshan-zuneko.github.io/langfuse-custom-tracer/doc/](https://sudarshan-zuneko.github.io/langfuse-custom-tracer/doc/)
+
 ## 🚀 Quick Start
 
 ### 1. Install
