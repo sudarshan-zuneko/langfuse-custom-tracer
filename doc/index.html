@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Langfuse Custom Tracer — Documentation</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg2: #f7f7f5;
+    --bg3: #f0efe9;
+    --text: #1a1a18;
+    --text2: #5a5a56;
+    --text3: #888880;
+    --border: rgba(0,0,0,0.10);
+    --border2: rgba(0,0,0,0.18);
+    --purple-bg: #EEEDFE;
+    --purple-border: #AFA9EC;
+    --purple-text: #3C3489;
+    --teal-bg: #E1F5EE;
+    --teal-border: #5DCAA5;
+    --teal-text: #085041;
+    --amber-bg: #FAEEDA;
+    --amber-border: #EF9F27;
+    --amber-text: #412402;
+    --blue-bg: #E6F1FB;
+    --blue-border: #85B7EB;
+    --blue-text: #042C53;
+    --red-bg: #FCEBEB;
+    --red-border: #F09595;
+    --red-text: #501313;
+    --green-bg: #EAF3DE;
+    --green-border: #97C459;
+    --green-text: #173404;
+    --coral-bg: #FAECE7;
+    --coral-border: #F0997B;
+    --coral-text: #4A1B0C;
+    --radius: 10px;
+    --radius-lg: 14px;
+    --sidebar-w: 260px;
+    --code-bg: #1e1e2e;
+    --code-text: #cdd6f4;
+    --code-comment: #6c7086;
+    --code-keyword: #cba6f7;
+    --code-string: #a6e3a1;
+    --code-number: #fab387;
+    --code-func: #89b4fa;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16161a;
+      --bg2: #1e1e24;
+      --bg3: #252530;
+      --text: #e8e8e4;
+      --text2: #a0a09a;
+      --text3: #686862;
+      --border: rgba(255,255,255,0.08);
+      --border2: rgba(255,255,255,0.14);
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  /* ── layout ── */
+  .layout { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: var(--sidebar-w);
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    padding: 24px 0 48px;
+  }
+
+  .sidebar-logo {
+    padding: 0 20px 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+
+  .sidebar-logo .lib-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .sidebar-logo .lib-ver {
+    font-size: 12px;
+    color: var(--text3);
+  }
+
+  .sidebar-group {
+    padding: 0 12px;
+    margin-bottom: 20px;
+  }
+
+  .sidebar-group-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text3);
+    padding: 0 8px;
+    margin-bottom: 4px;
+    display: block;
+  }
+
+  .sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 7px;
+    font-size: 13px;
+    color: var(--text2);
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .sidebar-link:hover { background: var(--bg3); color: var(--text); }
+  .sidebar-link.active { background: var(--purple-bg); color: var(--purple-text); font-weight: 500; }
+
+  .main {
+    flex: 1;
+    min-width: 0;
+    padding: 0 0 80px;
+  }
+
+  /* ── top bar ── */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .topbar-title { font-size: 14px; font-weight: 600; color: var(--text); }
+
+  .badge-row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid;
+  }
+
+  .b-green  { background: var(--green-bg);  color: var(--green-text);  border-color: var(--green-border); }
+  .b-purple { background: var(--purple-bg); color: var(--purple-text); border-color: var(--purple-border); }
+  .b-blue   { background: var(--blue-bg);   color: var(--blue-text);   border-color: var(--blue-border); }
+  .b-amber  { background: var(--amber-bg);  color: var(--amber-text);  border-color: var(--amber-border); }
+  .b-teal   { background: var(--teal-bg);   color: var(--teal-text);   border-color: var(--teal-border); }
+  .b-red    { background: var(--red-bg);    color: var(--red-text);    border-color: var(--red-border); }
+  .b-coral  { background: var(--coral-bg);  color: var(--coral-text);  border-color: var(--coral-border); }
+
+  /* ── content sections ── */
+  .content { padding: 48px 48px 0; max-width: 860px; }
+
+  .section { margin-bottom: 64px; scroll-margin-top: 72px; }
+
+  .section > h2 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+
+  .section-desc {
+    font-size: 15px;
+    color: var(--text2);
+    line-height: 1.7;
+    margin-bottom: 24px;
+  }
+
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 24px 0 8px;
+  }
+
+  p { color: var(--text2); line-height: 1.7; margin-bottom: 12px; }
+
+  /* ── hero ── */
+  .hero-block {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 32px 36px;
+    margin-bottom: 48px;
+  }
+
+  .hero-block h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+
+  .hero-block .tagline {
+    font-size: 16px;
+    color: var(--text2);
+    line-height: 1.6;
+    margin-bottom: 20px;
+    max-width: 600px;
+  }
+
+  .hero-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* ── cards ── */
+  .card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    margin-bottom: 12px;
+  }
+
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+
+  .card h4 { font-size: 14px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+  .card p  { font-size: 13px; color: var(--text2); margin: 0; line-height: 1.6; }
+
+  .card-icon {
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 10px;
+    font-size: 17px;
+  }
+
+  /* ── code blocks ── */
+  pre {
+    background: var(--code-bg);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    overflow-x: auto;
+    margin: 12px 0 16px;
+    font-size: 13px;
+    line-height: 1.8;
+  }
+
+  code {
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 12px;
+  }
+
+  pre code { color: var(--code-text); font-size: 13px; }
+  .ck  { color: var(--code-keyword); }
+  .cs  { color: var(--code-string); }
+  .cm  { color: var(--code-comment); }
+  .cn  { color: var(--code-number); }
+  .cf  { color: var(--code-func); }
+
+  code.inline {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 5px;
+    color: var(--text);
+    font-size: 12.5px;
+  }
+
+  /* ── note / callout ── */
+  .note {
+    border-left: 3px solid var(--purple-border);
+    background: var(--purple-bg);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 12px 16px;
+    margin: 12px 0;
+    font-size: 13px;
+    color: var(--purple-text);
+    line-height: 1.6;
+  }
+
+  .note.warn {
+    border-left-color: var(--amber-border);
+    background: var(--amber-bg);
+    color: var(--amber-text);
+  }
+
+  .note.tip {
+    border-left-color: var(--teal-border);
+    background: var(--teal-bg);
+    color: var(--teal-text);
+  }
+
+  /* ── param table ── */
+  .param-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 12px 0 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .param-table th {
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    color: var(--text3);
+    padding: 9px 14px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .param-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    line-height: 1.6;
+    color: var(--text2);
+  }
+
+  .param-table tr:last-child td { border-bottom: none; }
+  .param-table td:first-child   { font-family: 'SF Mono', monospace; font-size: 12px; color: var(--purple-text); white-space: nowrap; }
+
+  .req { color: #A32D2D; font-size: 11px; font-weight: 600; background: var(--red-bg); padding: 1px 6px; border-radius: 4px; }
+  .opt { color: var(--teal-text); font-size: 11px; font-weight: 600; background: var(--teal-bg); padding: 1px 6px; border-radius: 4px; }
+
+  /* ── step list ── */
+  .step-list { display: flex; flex-direction: column; gap: 0; }
+
+  .step {
+    display: flex;
+    gap: 16px;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .step:last-child { border-bottom: none; }
+
+  .step-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--purple-bg);
+    color: var(--purple-text);
+    font-size: 13px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .step-body h4 { font-size: 15px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+  .step-body p  { font-size: 13px; color: var(--text2); margin-bottom: 8px; }
+
+  /* ── api method block ── */
+  .method-block {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .method-header {
+    background: var(--bg2);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .method-name {
+    font-family: 'SF Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--purple-text);
+  }
+
+  .method-desc {
+    font-size: 13px;
+    color: var(--text2);
+  }
+
+  .method-body { padding: 16px 18px; }
+  .method-body p { font-size: 13px; margin-bottom: 10px; }
+
+  /* ── returns block ── */
+  .returns {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    font-size: 13px;
+    margin: 10px 0;
+  }
+
+  .returns-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text3);
+    margin-bottom: 8px;
+  }
+
+  .returns-row {
+    display: flex;
+    gap: 12px;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: baseline;
+  }
+
+  .returns-row:last-child { border-bottom: none; }
+  .returns-key  { font-family: monospace; font-size: 12px; color: var(--purple-text); min-width: 130px; flex-shrink: 0; }
+  .returns-val  { font-size: 12px; color: var(--text2); }
+
+  /* ── model table ── */
+  .model-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 12px 0; }
+  .model-table th { text-align: left; font-weight: 600; font-size: 11px; color: var(--text3); padding: 8px 12px; border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.06em; }
+  .model-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); color: var(--text2); }
+  .model-table td:first-child { font-family: monospace; font-size: 12px; color: var(--text); }
+  .model-table tr:last-child td { border-bottom: none; }
+
+  /* ── structure tree ── */
+  .tree {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    font-family: 'SF Mono', monospace;
+    font-size: 12.5px;
+    line-height: 2;
+    color: var(--text2);
+  }
+
+  .tree .dir   { color: var(--text); font-weight: 600; }
+  .tree .cmt   { color: var(--text3); }
+
+  /* ── feature row ── */
+  .feat-list { display: flex; flex-direction: column; }
+
+  .feat-item {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .feat-item:last-child { border-bottom: none; }
+
+  .feat-icon {
+    width: 34px; height: 34px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0; margin-top: 1px;
+  }
+
+  .feat-item h4 { font-size: 14px; font-weight: 600; margin-bottom: 3px; color: var(--text); }
+  .feat-item p  { font-size: 13px; color: var(--text2); margin: 0; line-height: 1.6; }
+
+  /* ── sdk rows ── */
+  .sdk-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sdk-row:last-child { border-bottom: none; }
+  .sdk-row h4 { font-size: 13px; font-weight: 600; margin-bottom: 2px; color: var(--text); }
+  .sdk-row p  { font-size: 12px; color: var(--text2); margin: 0; }
+  .sdk-status { margin-left: auto; }
+
+  /* ── test stats ── */
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 16px; }
+
+  .stat-card {
+    background: var(--bg2);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    text-align: center;
+  }
+
+  .stat-num { font-size: 26px; font-weight: 700; color: var(--text); line-height: 1; margin-bottom: 4px; }
+  .stat-lbl { font-size: 12px; color: var(--text3); line-height: 1.4; }
+
+  /* ── output preview ── */
+  .output-preview {
+    background: #0f1117;
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    font-family: monospace;
+    font-size: 12.5px;
+    line-height: 2;
+    margin: 12px 0;
+    overflow-x: auto;
+  }
+
+  .op-trace  { color: #cba6f7; font-weight: 600; }
+  .op-gen    { color: #89dceb; font-weight: 600; }
+  .op-meta   { color: #a6adc8; }
+  .op-cost   { color: #a6e3a1; }
+  .op-label  { color: #6c7086; }
+
+  /* ── divider ── */
+  hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+  /* ── footer ── */
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 24px 48px;
+    font-size: 12px;
+    color: var(--text3);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* ── mobile ── */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .content { padding: 24px 20px 0; }
+    .topbar  { padding: 12px 20px; }
+    .footer  { padding: 20px; }
+    .hero-block { padding: 24px 20px; }
+    .hero-block h1 { font-size: 22px; }
+  }
+
+  /* ── scrollbar ── */
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- sidebar -->
+  <nav class="sidebar" aria-label="Documentation navigation">
+    <div class="sidebar-logo">
+      <span class="lib-name">langfuse-custom-tracer</span>
+      <span class="lib-ver">Python 3.10+ · MIT license</span>
+    </div>
+
+    <div class="sidebar-group">
+      <span class="sidebar-group-label">Getting started</span>
+      <a class="sidebar-link" href="#overview">Overview</a>
+      <a class="sidebar-link" href="#installation">Installation</a>
+      <a class="sidebar-link" href="#quickstart">Quick start</a>
+    </div>
+
+    <div class="sidebar-group">
+      <span class="sidebar-group-label">Usage</span>
+      <a class="sidebar-link" href="#auto-tracing">Auto tracing</a>
+      <a class="sidebar-link" href="#manual-tracing">Manual tracing</a>
+      <a class="sidebar-link" href="#multi-step">Multi-step pipelines</a>
+      <a class="sidebar-link" href="#error-handling">Error handling</a>
+      <a class="sidebar-link" href="#dashboard">Langfuse dashboard</a>
+    </div>
+
+    <div class="sidebar-group">
+      <span class="sidebar-group-label">API reference</span>
+      <a class="sidebar-link" href="#api-client">create_langfuse_client()</a>
+      <a class="sidebar-link" href="#api-load-env">load_env()</a>
+      <a class="sidebar-link" href="#api-trace">tracer.trace()</a>
+      <a class="sidebar-link" href="#api-generation">tracer.generation()</a>
+      <a class="sidebar-link" href="#api-extract-usage">tracer.extract_usage()</a>
+      <a class="sidebar-link" href="#api-flush">tracer.flush()</a>
+      <a class="sidebar-link" href="#api-auto">Auto tracing API</a>
+    </div>
+
+    <div class="sidebar-group">
+      <span class="sidebar-group-label">Reference</span>
+      <a class="sidebar-link" href="#pricing">Dynamic pricing</a>
+      <a class="sidebar-link" href="#models">Supported models</a>
+      <a class="sidebar-link" href="#sdks">Supported SDKs</a>
+      <a class="sidebar-link" href="#structure">Project structure</a>
+      <a class="sidebar-link" href="#testing">Testing</a>
+      <a class="sidebar-link" href="#security">Security</a>
+    </div>
+  </nav>
+
+  <!-- main -->
+  <div class="main">
+    <div class="topbar">
+      <span class="topbar-title">Documentation</span>
+      <div class="badge-row">
+        <span class="badge b-green">✓ 81 tests passing</span>
+        <span class="badge b-purple">64% coverage</span>
+        <span class="badge b-blue">Python 3.10+</span>
+        <span class="badge b-amber">MIT</span>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- HERO -->
+      <div class="hero-block">
+        <h1>Langfuse Custom Tracer</h1>
+        <p class="tagline">
+          A lightweight Python library that records every AI call your application makes —
+          what was sent, what came back, how many tokens were used, and exactly how much it cost.
+          All of it flows into your Langfuse dashboard automatically.
+        </p>
+        <div class="hero-badges">
+          <span class="badge b-teal">Google Gemini</span>
+          <span class="badge b-purple">Anthropic Claude</span>
+          <span class="badge b-amber">Dynamic pricing</span>
+          <span class="badge b-blue">OpenTelemetry</span>
+          <span class="badge b-green">Zero-setup auto tracing</span>
+        </div>
+      </div>
+
+      <!-- OVERVIEW -->
+      <section class="section" id="overview">
+        <h2>What is this library?</h2>
+        <p class="section-desc">
+          When you build applications with AI models, you quickly need answers to questions like:
+          <em>how many tokens did that cost? which step is the slowest? which user is spending the most?</em>
+          This library answers all of those — automatically — by integrating with
+          <a href="https://langfuse.com" target="_blank" rel="noopener">Langfuse</a>,
+          an open-source observability platform for LLM apps.
+        </p>
+
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-icon" style="background:var(--purple-bg)">🔢</div>
+            <h4>Automatic token counting</h4>
+            <p>Reads token usage directly from the API response. No manual parsing required.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon" style="background:var(--amber-bg)">💰</div>
+            <h4>Dynamic cost calculation</h4>
+            <p>Fetches live pricing from a remote JSON file. Prices update without any code changes.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon" style="background:var(--teal-bg)">🌿</div>
+            <h4>Nested trace visualisation</h4>
+            <p>Multi-step pipelines appear as a parent-child tree in Langfuse.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon" style="background:var(--blue-bg)">⚡</div>
+            <h4>Zero-setup auto tracing</h4>
+            <p>Call <code class="inline">observe()</code> once — all AI calls are traced from that point on.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon" style="background:var(--green-bg)">🛡️</div>
+            <h4>Graceful degradation</h4>
+            <p>If the network is unavailable, the library uses cached pricing and never crashes your app.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon" style="background:var(--coral-bg)">⏱️</div>
+            <h4>TTL-based caching</h4>
+            <p>Pricing data is cached for 10 minutes so you never make a network call on every request.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- INSTALLATION -->
+      <section class="section" id="installation">
+        <h2>Installation</h2>
+        <p class="section-desc">
+          Install with <code class="inline">pip</code>. Pick the extras that match the AI providers you use.
+          If you are unsure, install everything with <code class="inline">[all]</code>.
+        </p>
+
+        <div class="card" style="padding:0">
+          <div class="step-list" style="padding: 0 20px">
+            <div class="step">
+              <div class="step-num">1</div>
+              <div class="step-body">
+                <h4>Core library only</h4>
+                <p>Just the tracer, no provider SDKs.</p>
+                <pre><code>pip install langfuse-custom-tracer</code></pre>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">2</div>
+              <div class="step-body">
+                <h4>Add <code class="inline">.env</code> file support</h4>
+                <p>Lets you load API keys from a <code class="inline">.env</code> file using <code class="inline">load_env()</code>.</p>
+                <pre><code>pip install langfuse-custom-tracer[env]</code></pre>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">3</div>
+              <div class="step-body">
+                <h4>Add provider support</h4>
+                <p>Choose the providers you need, or install everything at once.</p>
+                <pre><code><span class="cm"># Google Gemini only</span>
+pip install langfuse-custom-tracer[gemini]
+
+<span class="cm"># Anthropic Claude only</span>
+pip install langfuse-custom-tracer[anthropic]
+
+<span class="cm"># Everything — recommended for most projects</span>
+pip install langfuse-custom-tracer[all]</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- QUICKSTART -->
+      <section class="section" id="quickstart">
+        <h2>Quick start</h2>
+        <p class="section-desc">
+          Get up and running in three steps. You will need API keys from Langfuse and at least one AI provider.
+        </p>
+
+        <h3>Step 1 — Get your API keys</h3>
+        <div class="card-grid">
+          <div class="card">
+            <h4>Langfuse <span class="req">required</span></h4>
+            <p>Sign up at <a href="https://cloud.langfuse.com" target="_blank" rel="noopener">cloud.langfuse.com</a>. Find your secret key and public key in project settings.</p>
+          </div>
+          <div class="card">
+            <h4>Google Gemini <span class="opt">optional</span></h4>
+            <p>Get your key from <a href="https://ai.google.dev" target="_blank" rel="noopener">ai.google.dev</a>. Only needed if you use Gemini models.</p>
+          </div>
+          <div class="card">
+            <h4>Anthropic Claude <span class="opt">optional</span></h4>
+            <p>Get your key from <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a>. Only needed if you use Claude models.</p>
+          </div>
+        </div>
+
+        <h3>Step 2 — Create a <code class="inline">.env</code> file</h3>
+        <p>In your project root, create a file named <code class="inline">.env</code> and add your keys:</p>
+        <pre><code><span class="cm"># .env — never commit this file to version control</span>
+<span class="cf">LANGFUSE_SECRET_KEY</span>=sk-lf-...
+<span class="cf">LANGFUSE_PUBLIC_KEY</span>=pk-lf-...
+
+<span class="cf">GEMINI_API_KEY</span>=...
+<span class="cf">ANTHROPIC_API_KEY</span>=...</code></pre>
+
+        <div class="note warn">
+          <strong>Important:</strong> Never commit your <code>.env</code> file. Add it to <code>.gitignore</code>. The library will raise an error if required keys are missing.
+        </div>
+
+        <h3>Step 3 — Run your first traced call</h3>
+        <pre><code><span class="ck">from</span> langfuse_custom_tracer <span class="ck">import</span> load_env, observe
+<span class="ck">import</span> os
+
+load_env()   <span class="cm"># reads your .env file</span>
+observe()    <span class="cm"># turns on automatic tracing — do this before importing AI SDKs</span>
+
+<span class="ck">import</span> google.generativeai <span class="ck">as</span> genai
+genai.configure(api_key=os.getenv(<span class="cs">"GEMINI_API_KEY"</span>))
+model = genai.GenerativeModel(<span class="cs">"gemini-2.0-flash"</span>)
+
+<span class="cm"># This call is now automatically traced and sent to Langfuse</span>
+response = model.generate_content(<span class="cs">"Summarise the history of Python in 3 sentences."</span>)
+<span class="ck">print</span>(response.text)</code></pre>
+
+        <div class="note tip">
+          Open your Langfuse dashboard after running the script. You will see the trace with token counts, latency, and cost already calculated.
+        </div>
+      </section>
+
+      <!-- AUTO TRACING -->
+      <section class="section" id="auto-tracing">
+        <h2>Auto tracing</h2>
+        <p class="section-desc">
+          The recommended approach for most applications. Call <code class="inline">observe()</code> once
+          at startup and every subsequent AI call is recorded automatically — no wrapping, no boilerplate.
+        </p>
+
+        <div class="note warn">
+          Call <code>observe()</code> <strong>before</strong> importing any AI SDK. It works by patching
+          the SDK internally, so the import order matters.
+        </div>
+
+        <h3>What gets recorded on every call</h3>
+        <div class="card" style="padding: 0 20px">
+          <div class="feat-list">
+            <div class="feat-item">
+              <div class="feat-icon" style="background:var(--purple-bg)">🤖</div>
+              <div><h4>Model name</h4><p>The exact model string passed to the API.</p></div>
+            </div>
+            <div class="feat-item">
+              <div class="feat-icon" style="background:var(--blue-bg)">📥</div>
+              <div><h4>Input prompt</h4><p>The full message or prompt sent to the model.</p></div>
+            </div>
+            <div class="feat-item">
+              <div class="feat-icon" style="background:var(--teal-bg)">📤</div>
+              <div><h4>Output response</h4><p>The model's full reply.</p></div>
+            </div>
+            <div class="feat-item">
+              <div class="feat-icon" style="background:var(--amber-bg)">🔢</div>
+              <div><h4>Token counts</h4><p>Input tokens, output tokens, and cached tokens (where applicable).</p></div>
+            </div>
+            <div class="feat-item">
+              <div class="feat-icon" style="background:var(--green-bg)">💰</div>
+              <div><h4>Cost in USD</h4><p>Calculated using dynamic pricing. Both input and output costs are recorded separately.</p></div>
+            </div>
+            <div class="feat-item">
+              <div class="feat-icon" style="background:var(--coral-bg)">⏱️</div>
+              <div><h4>Latency</h4><p>Wall-clock time in milliseconds from request to response.</p></div>
+            </div>
+            <div class="feat-item">
+              <div class="feat-icon" style="background:var(--red-bg)">⚠️</div>
+              <div><h4>Errors</h4><p>If the call fails, the error is captured and the trace is marked as failed in Langfuse.</p></div>
+            </div>
+          </div>
+        </div>
+
+        <h3>Tag calls with a user ID</h3>
+        <p>Call <code class="inline">set_user()</code> at the start of each request to tag all subsequent AI calls with that user's ID. Langfuse aggregates cost and usage per user automatically.</p>
+        <pre><code><span class="ck">from</span> langfuse_custom_tracer <span class="ck">import</span> observe, set_user
+
+observe()
+
+<span class="cm"># In a web app, set the user at the start of each request</span>
+<span class="ck">def</span> <span class="cf">handle_chat_request</span>(user_id: str, message: str):
+    set_user(user_id)
+
+    <span class="cm"># All AI calls below are now tagged to user_id in Langfuse</span>
+    response = model.generate_content(message)
+    <span class="ck">return</span> response.text</code></pre>
+
+        <h3>Group calls into sessions</h3>
+        <p>A session groups multiple traces together — useful for multi-turn conversations. All messages in one conversation appear together on the Langfuse Sessions tab.</p>
+        <pre><code><span class="ck">from</span> langfuse_custom_tracer <span class="ck">import</span> observe, set_user, set_session, end_session
+
+observe()
+
+set_user(<span class="cs">"user-123"</span>)
+session_id = set_session()   <span class="cm"># auto-generates a UUID; returns it so you can store it</span>
+
+response1 = model.generate_content(<span class="cs">"Hello"</span>)
+response2 = model.generate_content(<span class="cs">"Tell me more"</span>)
+response3 = model.generate_content(<span class="cs">"Thanks, that is helpful"</span>)
+
+end_session()   <span class="cm"># clears the session so the next conversation starts fresh</span></code></pre>
+
+        <h3>Attach quality scores</h3>
+        <p>After a call completes, you can attach a score — useful for recording user feedback (thumbs up/down), LLM-as-a-judge evaluations, or custom metrics.</p>
+        <pre><code><span class="ck">from</span> langfuse_custom_tracer <span class="ck">import</span> observe, get_trace_id, score
+
+observe()
+
+response = model.generate_content(<span class="cs">"Explain recursion"</span>)
+trace_id = get_trace_id()   <span class="cm"># capture the ID immediately after the call</span>
+
+<span class="cm"># Later — for example when the user clicks thumbs up</span>
+score(<span class="cs">"thumbs_up"</span>,    <span class="cn">1.0</span>,  trace_id=trace_id, comment=<span class="cs">"Very clear explanation"</span>)
+score(<span class="cs">"relevance"</span>,    <span class="cn">0.95</span>, trace_id=trace_id, data_type=<span class="cs">"NUMERIC"</span>)
+score(<span class="cs">"hallucination"</span>, <span class="ck">False</span>, trace_id=trace_id, data_type=<span class="cs">"BOOLEAN"</span>)</code></pre>
+
+        <h3>Async support</h3>
+        <p>Auto tracing works with <code class="inline">asyncio</code> out of the box. Each asyncio task has its own isolated context via Python's <code class="inline">contextvars</code>, so concurrent requests never mix up each other's user IDs or session IDs.</p>
+        <pre><code><span class="ck">import</span> asyncio
+<span class="ck">from</span> langfuse_custom_tracer <span class="ck">import</span> observe, set_user
+
+observe()
+
+<span class="ck">async def</span> <span class="cf">process_user</span>(user_id: str, messages: list):
+    set_user(user_id)   <span class="cm"># ContextVar — isolated per asyncio task</span>
+    tasks = [model.generate_content_async(m) <span class="ck">for</span> m <span class="ck">in</span> messages]
+    <span class="ck">return await</span> asyncio.gather(*tasks)
+
+<span class="cm"># Both users are processed concurrently without interfering with each other</span>
+asyncio.run(asyncio.gather(
+    process_user(<span class="cs">"user-1"</span>, [<span class="cs">"msg1"</span>, <span class="cs">"msg2"</span>]),
+    process_user(<span class="cs">"user-2"</span>, [<span class="cs">"msg3"</span>, <span class="cs">"msg4"</span>]),
+))</code></pre>
+      </section>
+
+      <!-- MANUAL TRACING -->
+      <section class="section" id="manual-tracing">
+        <h2>Manual tracing</h2>
+        <p class="section-desc">
+          When you want full control — custom names, explicit inputs and outputs, metadata — use the
+          context manager API directly. This is particularly useful for labelling multi-step pipelines
+          so each step is clearly visible in Langfuse.
+        </p>
+
+        <h3>With Google Gemini</h3>
+        <pre><code><span class="ck">from</span> langfuse_custom_tracer <span class="ck">import</span> load_env, create_langfuse_client, GeminiTracer
+<span class="ck">import</span> google.generativeai <span class="ck">as</span> genai
+<span class="ck">import</span> os
+
+load_env()
+
+lf     = create_langfuse_client(os.getenv(<span class="cs">"LANGFUSE_SECRET_KEY"</span>), os.getenv(<span class="cs">"LANGFUSE_PUBLIC_KEY"</span>))
+tracer = GeminiTracer(lf)
+
+genai.configure(api_key=os.getenv(<span class="cs">"GEMINI_API_KEY"</span>))
+model = genai.GenerativeModel(<span class="cs">"gemini-2.0-flash"</span>)
+
+<span class="ck">with</span> tracer.trace(<span class="cs">"invoice-processing"</span>, input={<span class="cs">"file"</span>: <span class="cs">"invoice.pdf"</span>}) <span class="ck">as</span> span:
+    <span class="ck">with</span> tracer.generation(<span class="cs">"extract-data"</span>, model=<span class="cs">"gemini-2.0-flash"</span>,
+                          input=<span class="cs">"Extract name, amount, date"</span>) <span class="ck">as</span> gen:
+        response = model.generate_content(<span class="cs">"Extract name, amount, date from this invoice: ..."</span>)
+        usage    = tracer.extract_usage(response, model=<span class="cs">"gemini-2.0-flash"</span>)
+        gen.update(output=response.text, usage_details=usage)
+    span.update(output=<span class="cs">"Extraction complete"</span>)
+
+tracer.flush()   <span class="cm"># required at end of script</span></code></pre>
+
+        <h3>With Anthropic Claude</h3>
+        <pre><code><span class="ck">from</span> langfuse_custom_tracer <span class="ck">import</span> load_env, create_langfuse_client, AnthropicTracer
+<span class="ck">from</span> anthropic <span class="ck">import</span> Anthropic
+<span class="ck">import</span> os
+
+load_env()
+
+lf     = create_langfuse_client(os.getenv(<span class="cs">"LANGFUSE_SECRET_KEY"</span>), os.getenv(<span class="cs">"LANGFUSE_PUBLIC_KEY"</span>))
+tracer = AnthropicTracer(lf)
+client = Anthropic(api_key=os.getenv(<span class="cs">"ANTHROPIC_API_KEY"</span>))
+
+<span class="ck">with</span> tracer.trace(<span class="cs">"invoice-processing"</span>, input={<span class="cs">"file"</span>: <span class="cs">"invoice.pdf"</span>}) <span class="ck">as</span> span:
+    <span class="ck">with</span> tracer.generation(<span class="cs">"extract-data"</span>, model=<span class="cs">"claude-3-5-sonnet-20241022"</span>) <span class="ck">as</span> gen:
+        response = client.messages.create(
+            model=<span class="cs">"claude-3-5-sonnet-20241022"</span>,
+            messages=[{<span class="cs">"role"</span>: <span class="cs">"user"</span>, <span class="cs">"content"</span>: <span class="cs">"Extract name, amount, date from this invoice: ..."</span>}]
+        )
+        usage = tracer.extract_usage(response, model=<span class="cs">"claude-3-5-sonnet-20241022"</span>)
+        gen.update(output=response.content[<span class="cn">0</span>].text, usage_details=usage)
+    span.update(output=<span class="cs">"Extraction complete"</span>)
+
+tracer.flush()</code></pre>
+      </section>
+
+      <!-- MULTI-STEP -->
+      <section class="section" id="multi-step">
+        <h2>Multi-step pipelines</h2>
+        <p class="section-desc">
+          Traces can be nested to any depth. Each <code class="inline">tracer.trace()</code> block inside another
+          becomes a child span. Langfuse uses OpenTelemetry context propagation to detect the nesting automatically —
+          you do not need to pass parent IDs manually.
+        </p>
+
+        <pre><code><span class="ck">with</span> tracer.trace(<span class="cs">"document-processing"</span>, user_id=<span class="cs">"user-123"</span>,
+                 metadata={<span class="cs">"doc_type"</span>: <span class="cs">"invoice"</span>}) <span class="ck">as</span> root:
+
+    <span class="ck">with</span> tracer.trace(<span class="cs">"step-1-ocr"</span>):
+        <span class="ck">with</span> tracer.generation(<span class="cs">"extract-text"</span>, model=<span class="cs">"gemini-2.0-flash-lite"</span>) <span class="ck">as</span> gen:
+            text = model.generate_content(<span class="cs">"Extract all text from this image."</span>)
+            gen.update(output=text.text, usage_details=tracer.extract_usage(text, model=<span class="cs">"gemini-2.0-flash-lite"</span>))
+
+    <span class="ck">with</span> tracer.trace(<span class="cs">"step-2-classify"</span>):
+        <span class="ck">with</span> tracer.generation(<span class="cs">"classify-doc"</span>, model=<span class="cs">"gemini-2.0-flash"</span>) <span class="ck">as</span> gen:
+            classification = model.generate_content(f<span class="cs">"Classify this document: {text.text}"</span>)
+            gen.update(output=classification.text, usage_details=tracer.extract_usage(classification, model=<span class="cs">"gemini-2.0-flash"</span>))
+
+    <span class="ck">with</span> tracer.trace(<span class="cs">"step-3-extract-fields"</span>):
+        <span class="ck">with</span> tracer.generation(<span class="cs">"get-fields"</span>, model=<span class="cs">"gemini-2.0-flash"</span>) <span class="ck">as</span> gen:
+            fields = model.generate_content(f<span class="cs">"Extract name, amount, date from: {text.text}"</span>)
+            gen.update(output=fields.text, usage_details=tracer.extract_usage(fields, model=<span class="cs">"gemini-2.0-flash"</span>))
+
+    root.update(output=<span class="cs">"All steps complete"</span>)
+
+tracer.flush()</code></pre>
+
+        <p>In Langfuse you will see a clean tree: the root trace contains three child spans, each with its own latency, token count, and cost. The root trace also shows the combined totals.</p>
+      </section>
+
+      <!-- ERROR HANDLING -->
+      <section class="section" id="error-handling">
+        <h2>Error handling</h2>
+        <p class="section-desc">
+          Wrap AI calls in a try/except inside the generation block.
+          Even if the call fails, the trace is sent to Langfuse with the error attached
+          — so you can track failure rates over time.
+        </p>
+
+        <pre><code><span class="ck">with</span> tracer.trace(<span class="cs">"risky-task"</span>):
+    <span class="ck">with</span> tracer.generation(<span class="cs">"ai-call"</span>, model=<span class="cs">"gemini-2.0-flash"</span>) <span class="ck">as</span> gen:
+        <span class="ck">try</span>:
+            response = model.generate_content(<span class="cs">"..."</span>)
+            usage    = tracer.extract_usage(response, model=<span class="cs">"gemini-2.0-flash"</span>)
+            gen.update(output=response.text, usage_details=usage)
+        <span class="ck">except</span> Exception <span class="ck">as</span> e:
+            gen.update(status_code=<span class="cn">500</span>, error=str(e))
+            <span class="ck">raise</span>   <span class="cm"># re-raise so your application can handle it</span></code></pre>
+      </section>
+
+      <!-- DASHBOARD -->
+      <section class="section" id="dashboard">
+        <h2>Langfuse dashboard</h2>
+        <p class="section-desc">
+          After running your code, open <a href="https://cloud.langfuse.com" target="_blank" rel="noopener">cloud.langfuse.com</a>.
+          Each traced call appears in the Traces list. Here is what a typical trace looks like:
+        </p>
+
+        <div class="output-preview">
+<span class="op-trace">Trace: invoice-processing</span>   <span class="op-label">ID: trace-abc123</span>
+<span class="op-meta">  Duration  : 2.3s</span>
+<span class="op-meta">  User      : user-123</span>
+<span class="op-meta">  Tags      : [production, batch]</span>
+<span class="op-meta">  Status    : success</span>
+<br>
+<span class="op-gen">  └─ Generation: extract-data</span>
+<span class="op-meta">       Model     : gemini-2.0-flash</span>
+<span class="op-meta">       Tokens    : input 156  ·  output 89  ·  total 245</span>
+<span class="op-cost">       Cost      : $0.000287  (input $0.000234  +  output $0.000053)</span>
+<span class="op-meta">       Pricing   : source=json  ·  version=2026-04-22-v1</span>
+<span class="op-meta">       Latency   : 1.8s</span>
+<span class="op-meta">       Output    : "Name: John Doe, Amount: $500, Date: 2025-03-31"</span>
+        </div>
+
+        <div class="note">
+          The dashboard also aggregates all calls: total daily tokens, total cost, cost per user, and a breakdown by model — with no extra configuration.
+        </div>
+      </section>
+
+      <hr />
+
+      <!-- API REFERENCE -->
+      <section class="section" id="api-client">
+        <h2>API reference</h2>
+
+        <div class="method-block">
+          <div class="method-header">
+            <span class="method-name">create_langfuse_client()</span>
+            <span class="badge b-purple">langfuse_custom_tracer</span>
+          </div>
+          <div class="method-body">
+            <p>Creates and returns a Langfuse client. Pass the returned object into your tracer constructor.</p>
+            <table class="param-table">
+              <thead><tr><th>Parameter</th><th>Type</th><th>Description</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>secret_key</td><td>str</td><td>Your Langfuse secret key (<code class="inline">sk-lf-...</code>)</td><td><span class="req">required</span></td></tr>
+                <tr><td>public_key</td><td>str</td><td>Your Langfuse public key (<code class="inline">pk-lf-...</code>)</td><td><span class="req">required</span></td></tr>
+                <tr><td>host</td><td>str</td><td>EU: <code class="inline">https://cloud.langfuse.com</code> · US: <code class="inline">https://us.cloud.langfuse.com</code></td><td><span class="opt">optional</span></td></tr>
+              </tbody>
+            </table>
+            <pre><code>lf = create_langfuse_client(
+    secret_key=os.getenv(<span class="cs">"LANGFUSE_SECRET_KEY"</span>),
+    public_key=os.getenv(<span class="cs">"LANGFUSE_PUBLIC_KEY"</span>),
+    host=<span class="cs">"https://us.cloud.langfuse.com"</span>  <span class="cm"># optional — US region</span>
+)</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="api-load-env">
+        <div class="method-block">
+          <div class="method-header">
+            <span class="method-name">load_env()</span>
+            <span class="badge b-purple">langfuse_custom_tracer</span>
+          </div>
+          <div class="method-body">
+            <p>Loads environment variables from a <code class="inline">.env</code> file. Requires the <code class="inline">[env]</code> extra (<code class="inline">python-dotenv</code>). Call this at the very top of your script, before anything else.</p>
+            <table class="param-table">
+              <thead><tr><th>Parameter</th><th>Type</th><th>Description</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>path</td><td>str</td><td>Path to the env file. Defaults to <code class="inline">.env</code> in the current directory.</td><td><span class="opt">optional</span></td></tr>
+              </tbody>
+            </table>
+            <pre><code>load_env()                      <span class="cm"># reads .env in current directory</span>
+load_env(<span class="cs">".env.production"</span>)    <span class="cm"># reads a custom file</span></code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="api-trace">
+        <div class="method-block">
+          <div class="method-header">
+            <span class="method-name">tracer.trace()</span>
+            <span class="badge b-purple">context manager</span>
+          </div>
+          <div class="method-body">
+            <p>Creates a root-level span — the top of your trace tree. Everything nested inside this block becomes a child span. You can nest <code class="inline">trace()</code> inside another <code class="inline">trace()</code> to build multi-level trees.</p>
+            <table class="param-table">
+              <thead><tr><th>Parameter</th><th>Type</th><th>Description</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>name</td><td>str</td><td>A label for this span, e.g. <code class="inline">"invoice-processing"</code></td><td><span class="req">required</span></td></tr>
+                <tr><td>input</td><td>any</td><td>The input to this step (any Python value — shown in Langfuse)</td><td><span class="opt">optional</span></td></tr>
+                <tr><td>metadata</td><td>dict</td><td>Custom key/value pairs, e.g. <code class="inline">{"version": "1.0"}</code></td><td><span class="opt">optional</span></td></tr>
+                <tr><td>user_id</td><td>str</td><td>Identifier for the user who triggered this trace</td><td><span class="opt">optional</span></td></tr>
+                <tr><td>session_id</td><td>str</td><td>Groups this trace into a conversation session</td><td><span class="opt">optional</span></td></tr>
+                <tr><td>tags</td><td>list[str]</td><td>String labels for filtering in Langfuse, e.g. <code class="inline">["production", "batch"]</code></td><td><span class="opt">optional</span></td></tr>
+              </tbody>
+            </table>
+            <p>Call <code class="inline">span.update(output=...)</code> inside the block to record the output after the work is done.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="api-generation">
+        <div class="method-block">
+          <div class="method-header">
+            <span class="method-name">tracer.generation()</span>
+            <span class="badge b-purple">context manager</span>
+          </div>
+          <div class="method-body">
+            <p>Creates a generation span — one individual LLM call. Nest this inside a <code class="inline">trace()</code> block. After the AI call returns, call <code class="inline">gen.update(output=..., usage_details=...)</code> to record the result.</p>
+            <table class="param-table">
+              <thead><tr><th>Parameter</th><th>Type</th><th>Description</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>name</td><td>str</td><td>Label for this specific LLM call, e.g. <code class="inline">"extract-data"</code></td><td><span class="req">required</span></td></tr>
+                <tr><td>model</td><td>str</td><td>The model name string, e.g. <code class="inline">"gemini-2.0-flash"</code></td><td><span class="opt">optional</span></td></tr>
+                <tr><td>input</td><td>any</td><td>The prompt or messages you sent</td><td><span class="opt">optional</span></td></tr>
+                <tr><td>metadata</td><td>dict</td><td>Custom metadata, e.g. temperature or system prompt version</td><td><span class="opt">optional</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="api-extract-usage">
+        <div class="method-block">
+          <div class="method-header">
+            <span class="method-name">tracer.extract_usage()</span>
+            <span class="badge b-teal">GeminiTracer · AnthropicTracer</span>
+          </div>
+          <div class="method-body">
+            <p>Reads token counts from the model response object and calculates costs using dynamic pricing. Pass the returned dict directly to <code class="inline">gen.update(usage_details=...)</code>.</p>
+            <table class="param-table">
+              <thead><tr><th>Parameter</th><th>Type</th><th>Description</th><th></th></tr></thead>
+              <tbody>
+                <tr><td>response</td><td>object</td><td>The raw response object returned by the AI SDK</td><td><span class="req">required</span></td></tr>
+                <tr><td>model</td><td>str</td><td>Model name — used to look up the correct pricing</td><td><span class="req">required</span></td></tr>
+              </tbody>
+            </table>
+            <div class="returns">
+              <div class="returns-label">Returns</div>
+              <div class="returns-row"><span class="returns-key">input</span><span class="returns-val">int — number of prompt tokens</span></div>
+              <div class="returns-row"><span class="returns-key">output</span><span class="returns-val">int — number of completion tokens</span></div>
+              <div class="returns-row"><span class="returns-key">total</span><span class="returns-val">int — input + output</span></div>
+              <div class="returns-row"><span class="returns-key">unit</span><span class="returns-val">str — always <code class="inline">"TOKENS"</code></span></div>
+              <div class="returns-row"><span class="returns-key">inputCost</span><span class="returns-val">float — input cost in USD</span></div>
+              <div class="returns-row"><span class="returns-key">outputCost</span><span class="returns-val">float — output cost in USD</span></div>
+              <div class="returns-row"><span class="returns-key">totalCost</span><span class="returns-val">float — combined cost in USD</span></div>
+              <div class="returns-row"><span class="returns-key">cachedTokens</span><span class="returns-val">int (optional) — cached tokens used (Gemini and Anthropic)</span></div>
+              <div class="returns-row"><span class="returns-key">pricing_source</span><span class="returns-val">str — <code class="inline">"json"</code> (remote) or <code class="inline">"default"</code> (fallback)</span></div>
+              <div class="returns-row"><span class="returns-key">pricing_version</span><span class="returns-val">str — version tag from the pricing file, e.g. <code class="inline">"2026-04-22-v1"</code></span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="api-flush">
+        <div class="method-block">
+          <div class="method-header">
+            <span class="method-name">tracer.flush()</span>
+            <span class="badge b-purple">BaseTracer</span>
+          </div>
+          <div class="method-body">
+            <p>Sends all buffered trace data to Langfuse and blocks until the upload completes.</p>
+            <div class="note warn">Always call <code>tracer.flush()</code> at the end of short-lived scripts (CLI tools, batch jobs, notebooks). Long-running servers flush automatically in the background — you can skip this there.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="api-auto">
+        <h2>Auto tracing API</h2>
+        <p class="section-desc">These functions are only available when using <code class="inline">observe()</code> mode.</p>
+
+        <table class="param-table">
+          <thead><tr><th>Function</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td>observe()</td><td>Patches the Gemini and Anthropic SDKs globally. Call once at startup.</td></tr>
+            <tr><td>set_user(user_id)</td><td>Tags all subsequent calls in the current context with the given user ID.</td></tr>
+            <tr><td>set_session(session_id=None)</td><td>Starts a new session. Auto-generates a UUID if no ID is passed. Returns the session ID.</td></tr>
+            <tr><td>end_session()</td><td>Clears the current session from the context.</td></tr>
+            <tr><td>get_trace_id()</td><td>Returns the trace ID of the most recent AI call.</td></tr>
+            <tr><td>score(name, value, trace_id=None, comment=None, data_type="NUMERIC")</td><td>Attaches a quality score to a trace. <code class="inline">data_type</code> can be <code class="inline">"NUMERIC"</code> or <code class="inline">"BOOLEAN"</code>.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <hr />
+
+      <!-- DYNAMIC PRICING -->
+      <section class="section" id="pricing">
+        <h2>Dynamic pricing</h2>
+        <p class="section-desc">
+          Pricing is decoupled from source code and managed via a remote JSON file.
+          When AI providers change their prices, your cost numbers update automatically —
+          no new library version required.
+        </p>
+
+        <h3>How it works</h3>
+        <div class="card" style="padding: 0 20px">
+          <div class="step-list">
+            <div class="step">
+              <div class="step-num">1</div>
+              <div class="step-body"><h4>Fetch</h4><p>On first use, the library fetches <code class="inline">pricing.json</code> from a remote URL (GitHub by default).</p></div>
+            </div>
+            <div class="step">
+              <div class="step-num">2</div>
+              <div class="step-body"><h4>Cache</h4><p>The data is cached in memory for 10 minutes (TTL-based). Subsequent calls within that window use the cache.</p></div>
+            </div>
+            <div class="step">
+              <div class="step-num">3</div>
+              <div class="step-body"><h4>Fallback</h4><p>If the remote is unavailable, the library uses the last cached value. If no cache exists, it uses built-in default prices. It never crashes.</p></div>
+            </div>
+            <div class="step">
+              <div class="step-num">4</div>
+              <div class="step-body"><h4>Audit trail</h4><p>Every trace records <code class="inline">pricing_source</code> and <code class="inline">pricing_version</code> so you can trace cost calculations back to a specific pricing snapshot.</p></div>
+            </div>
+          </div>
+        </div>
+
+        <h3>Use a custom pricing URL</h3>
+        <p>Point the library at your own pricing file by setting an environment variable or passing a URL in code:</p>
+        <pre><code><span class="cm"># Option 1 — environment variable</span>
+PRICING_JSON_URL=https://your-domain.com/pricing.json
+
+<span class="cm"># Option 2 — in code</span>
+<span class="ck">from</span> langfuse_custom_tracer <span class="ck">import</span> get_pricing_manager
+
+pm = get_pricing_manager(url=<span class="cs">"https://your-domain.com/pricing.json"</span>)
+price, version, source = pm.get_price(<span class="cs">"gemini-2.0-flash"</span>)
+<span class="ck">print</span>(f<span class="cs">"Input: ${price['input']} per 1M tokens (v{version}, from {source})"</span>)</code></pre>
+      </section>
+
+      <!-- MODELS -->
+      <section class="section" id="models">
+        <h2>Supported models</h2>
+        <p class="section-desc">All prices are per 1 million tokens (Q1 2026). Prices update automatically via the remote JSON.</p>
+
+        <h3>Google Gemini</h3>
+        <table class="model-table">
+          <thead><tr><th>Model</th><th>Input</th><th>Output</th><th>Cache read</th></tr></thead>
+          <tbody>
+            <tr><td>gemini-2.5-pro</td><td>$1.25</td><td>$10.00</td><td>$0.3125</td></tr>
+            <tr><td>gemini-2.0-flash</td><td>$0.15</td><td>$0.60</td><td>$0.0375</td></tr>
+            <tr><td>gemini-2.0-flash-lite</td><td>$0.075</td><td>$0.30</td><td>$0.01875</td></tr>
+            <tr><td>gemini-1.5-pro</td><td>$1.25</td><td>$5.00</td><td>$0.3125</td></tr>
+            <tr><td>gemini-1.5-flash</td><td>$0.075</td><td>$0.30</td><td>$0.01875</td></tr>
+            <tr><td>gemini-1.5-flash-8b</td><td>$0.0375</td><td>$0.15</td><td>$0.01</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Anthropic Claude</h3>
+        <table class="model-table">
+          <thead><tr><th>Model</th><th>Input</th><th>Output</th><th>Cache read</th><th>Cache write</th></tr></thead>
+          <tbody>
+            <tr><td>claude-3-5-sonnet-20241022</td><td>$3.00</td><td>$15.00</td><td>$0.30</td><td>$3.75</td></tr>
+            <tr><td>claude-3-5-haiku-20241022</td><td>$0.80</td><td>$4.00</td><td>$0.08</td><td>$1.00</td></tr>
+            <tr><td>claude-3-opus-20250219</td><td>$15.00</td><td>$75.00</td><td>$1.50</td><td>$18.75</td></tr>
+            <tr><td>claude-3-sonnet-20250229</td><td>$3.00</td><td>$15.00</td><td>$0.30</td><td>$3.75</td></tr>
+            <tr><td>claude-3-haiku-20250307</td><td>$0.80</td><td>$4.00</td><td>$0.08</td><td>$1.00</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- SDKS -->
+      <section class="section" id="sdks">
+        <h2>Supported SDKs</h2>
+        <div class="card" style="padding: 0 20px">
+          <div class="sdk-row">
+            <span class="badge b-teal" style="min-width:110px;justify-content:center">Gemini legacy</span>
+            <div>
+              <h4><code class="inline">google-generativeai</code></h4>
+              <p>Patches <code class="inline">GenerativeModel.generate_content()</code></p>
+            </div>
+            <div class="sdk-status"><span class="badge b-green">✓ Supported</span></div>
+          </div>
+          <div class="sdk-row">
+            <span class="badge b-teal" style="min-width:110px;justify-content:center">Gemini new</span>
+            <div>
+              <h4><code class="inline">google-genai</code></h4>
+              <p>Patches <code class="inline">Models.generate_content()</code></p>
+            </div>
+            <div class="sdk-status"><span class="badge b-green">✓ Supported</span></div>
+          </div>
+          <div class="sdk-row">
+            <span class="badge b-purple" style="min-width:110px;justify-content:center">Anthropic</span>
+            <div>
+              <h4><code class="inline">anthropic</code></h4>
+              <p>Patches <code class="inline">Messages.create()</code></p>
+            </div>
+            <div class="sdk-status"><span class="badge b-green">✓ Supported</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STRUCTURE -->
+      <section class="section" id="structure">
+        <h2>Project structure</h2>
+        <div class="tree">langfuse-custom-tracer/
+├── <span class="dir">langfuse_custom_tracer/</span>
+│   ├── __init__.py            <span class="cmt"># package exports</span>
+│   ├── client.py              <span class="cmt"># Langfuse client setup</span>
+│   ├── pricing_manager.py     <span class="cmt"># remote pricing: fetch, cache, fallback</span>
+│   ├── auto.py                <span class="cmt"># observe() — SDK patching logic</span>
+│   ├── context.py             <span class="cmt"># ContextVar state: user, session, trace ID</span>
+│   ├── factory.py             <span class="cmt"># tracer factory helper</span>
+│   ├── scoring.py             <span class="cmt"># score() helper</span>
+│   └── <span class="dir">tracers/</span>
+│       ├── base.py            <span class="cmt"># BaseTracer — trace() and generation()</span>
+│       ├── gemini.py          <span class="cmt"># GeminiTracer — Gemini-specific extract_usage()</span>
+│       └── anthropic.py       <span class="cmt"># AnthropicTracer — Claude-specific extract_usage()</span>
+├── <span class="dir">tests/</span>                     <span class="cmt"># 81 unit tests</span>
+│   ├── conftest.py
+│   ├── test_pricing_manager.py
+│   ├── test_gemini_tracer.py
+│   ├── test_anthropic_tracer.py
+│   ├── test_base_tracer.py
+│   ├── test_auto_patch.py
+│   ├── test_factory.py
+│   └── test_client.py
+├── pricing.json               <span class="cmt"># local fallback pricing data</span>
+├── <span class="dir">examples/</span>
+│   └── env_setup_example.py
+├── SETUP.md
+├── TESTING.md
+└── pyproject.toml</div>
+      </section>
+
+      <!-- TESTING -->
+      <section class="section" id="testing">
+        <h2>Testing</h2>
+        <p class="section-desc">81 unit tests with 64% overall coverage. The full suite runs in approximately 1 second.</p>
+
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-num">81</div>
+            <div class="stat-lbl">Total tests passing</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num">43</div>
+            <div class="stat-lbl">AnthropicTracer<br>100% coverage</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num">19</div>
+            <div class="stat-lbl">PricingManager<br>79% coverage</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num">19</div>
+            <div class="stat-lbl">GeminiTracer<br>76% coverage</div>
+          </div>
+        </div>
+
+        <pre><code><span class="cm"># run the full test suite</span>
+pytest
+
+<span class="cm"># run with a coverage report</span>
+pytest --cov
+
+<span class="cm"># run a single test</span>
+pytest tests/test_gemini_tracer.py::TestGeminiTracer::test_extract_usage_basic -v
+
+<span class="cm"># run by module</span>
+pytest tests/test_anthropic_tracer.py -v
+pytest tests/test_pricing_manager.py -v</code></pre>
+      </section>
+
+      <!-- SECURITY -->
+      <section class="section" id="security">
+        <h2>Security</h2>
+
+        <div class="card" style="padding: 0 20px">
+          <div class="feat-list">
+            <div class="feat-item">
+              <div class="feat-icon" style="background:var(--red-bg)">🚫</div>
+              <div>
+                <h4>Never commit <code class="inline">.env</code> files</h4>
+                <p>The <code class="inline">.env</code> file is already listed in <code class="inline">.gitignore</code>. Do not remove it from there. If you accidentally commit keys, rotate them immediately.</p>
+              </div>
+            </div>
+            <div class="feat-item">
+              <div class="feat-icon" style="background:var(--green-bg)">🔒</div>
+              <div>
+                <h4>Keys only from environment variables</h4>
+                <p>Always read secrets via <code class="inline">os.getenv()</code> or <code class="inline">load_env()</code>. Never hardcode a key string in source code. The library raises an <code class="inline">ImportError</code> if required keys are missing.</p>
+              </div>
+            </div>
+            <div class="feat-item">
+              <div class="feat-icon" style="background:var(--blue-bg)">🔐</div>
+              <div>
+                <h4>HTTPS only</h4>
+                <p>All communication with Langfuse and the remote pricing endpoint is encrypted via HTTPS.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /content -->
+
+    <div class="footer">
+      <span>langfuse-custom-tracer · MIT license · Python 3.10+</span>
+      <span>Built for the LLM community · Langfuse is open-source observability for LLM applications</span>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<script>
+  const links = document.querySelectorAll('.sidebar-link');
+  const sections = document.querySelectorAll('.section');
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        links.forEach(l => {
+          l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+        });
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+</script>
+
+</body>
+</html>
