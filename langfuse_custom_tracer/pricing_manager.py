@@ -53,18 +53,21 @@ class PricingManager:
         """
         self._refresh_if_needed()
         
+        # Clean up model name (Gemini SDKs often prefix with "models/")
         model_lower = model.lower()
-        
+        if model_lower.startswith("models/"):
+            model_lower = model_lower[7:]
+            
         # 1. Try exact match in cache
         if model_lower in self._cache:
             return self._cache[model_lower], self._version, "json"
             
-        # 2. Try partial match (startswith)
+        # 2. Try partial match (startswith or contains)
         # Sort keys by length descending to match most specific model first
         sorted_keys = sorted(self._cache.keys(), key=len, reverse=True)
         for key in sorted_keys:
             key_lower = key.lower()
-            if model_lower.startswith(key_lower):
+            if model_lower.startswith(key_lower) or key_lower in model_lower:
                 return self._cache[key], self._version, "json"
                 
         # 3. Fallback to Langfuse (send 0 cost, let server handle it)
